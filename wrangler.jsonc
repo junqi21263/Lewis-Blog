@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "lewis-blog",
+  "compatibility_date": "2026-06-30",
+  "pages_build_output_dir": "./out",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nordic_blog_cms",
+      "database_id": "8a33b072-246b-41d5-8407-92e323489644"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ASSETS_BUCKET",
+      "bucket_name": "nordic-blog-assets"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "vectorize": [
+    {
+      "binding": "VECTOR_INDEX",
+      "index_name": "nordic_blog_vectors"
+    }
+  ]
+}

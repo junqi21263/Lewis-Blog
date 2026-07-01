@@ -1,0 +1,48 @@
+{
+  "name": "lewis-blog",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "postbuild": "node scripts/inject-static-hreflang.mjs && pagefind --site out --output-subdir pagefind",
+    "pages:dev": "wrangler pages dev ./out",
+    "pages:preview": "npm run build && wrangler pages dev ./out",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "cms:seed:local": "node scripts/cms/d1-restore.mjs --local --file data/seed/cms.seed.json --mode replace",
+    "cms:seed:remote": "node scripts/cms/d1-restore.mjs --remote --file data/seed/cms.seed.json --mode replace",
+    "cms:d1:export:local": "node scripts/cms/d1-export.mjs --local",
+    "cms:d1:export:remote": "node scripts/cms/d1-export.mjs --remote",
+    "cms:d1:restore:local": "node scripts/cms/d1-restore.mjs --local",
+    "cms:d1:restore:remote": "node scripts/cms/d1-restore.mjs --remote",
+    "cms:r2:upload:local": "node scripts/cms/r2-prefix.mjs upload --local",
+    "cms:r2:upload:remote": "node scripts/cms/r2-prefix.mjs upload --remote",
+    "cms:r2:delete:local": "node scripts/cms/r2-prefix.mjs delete --local",
+    "cms:r2:delete:remote": "node scripts/cms/r2-prefix.mjs delete --remote"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "exifr": "^7.1.3",
+    "lucide-react": "^0.468.0",
+    "next": "^15.1.0",
+    "opencc-js": "^1.0.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.15",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.0",
+    "pagefind": "^1.5.2",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.105.0"
+  }
+}

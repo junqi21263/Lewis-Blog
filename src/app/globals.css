@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-background: 246 244 240;
+  --color-surface: 246 244 240;
+  --color-surface-container-lowest: 248 247 243;
+  --color-surface-container: 232 229 222;
+  --color-surface-container-low: 240 238 232;
+  --color-surface-container-high: 218 214 206;
+  --color-surface-variant: 213 210 203;
+  --color-primary: 49 48 48;
+  --color-secondary: 139 88 35;
+  --color-outline: 109 108 104;
+  --color-outline-variant: 184 181 174;
+  --color-on-background: 28 27 27;
+  --color-on-surface: 28 27 27;
+  --color-on-surface-variant: 85 83 79;
+}
+
+.dark {
+  --color-background: 19 19 19;
+  --color-surface: 19 19 19;
+  --color-surface-container-lowest: 15 15 15;
+  --color-surface-container: 31 32 32;
+  --color-surface-container-low: 27 28 28;
+  --color-surface-container-high: 42 42 42;
+  --color-surface-variant: 53 53 53;
+  --color-primary: 200 198 197;
+  --color-secondary: 240 189 139;
+  --color-outline: 142 145 146;
+  --color-outline-variant: 68 71 72;
+  --color-on-background: 228 226 225;
+  --color-on-surface: 228 226 225;
+  --color-on-surface-variant: 196 199 199;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: rgb(var(--color-background));
+  color: rgb(var(--color-on-background));
+  font-family: var(--font-inter), Inter, sans-serif;
+  text-rendering: geometricPrecision;
+}
+
+::selection {
+  background: rgb(var(--color-surface-variant));
+  color: rgb(var(--color-on-background));
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+@layer components {
+  .editorial-shell {
+    @apply mx-auto w-full max-w-editorial px-margin-mobile md:px-margin-desktop;
+  }
+
+  .label-mono {
+    @apply font-mono text-label-mono uppercase tracking-widest text-on-surface-variant;
+  }
+
+  .image-zoom {
+    @apply overflow-hidden bg-surface-container-low;
+  }
+
+  .image-zoom img {
+    @apply transition-transform duration-1000 ease-editorial;
+  }
+
+  .group:hover .image-zoom img,
+  .image-zoom:hover img {
+    transform: scale(1.045);
+  }
+
+  .card-lift {
+    @apply transition duration-500 ease-editorial;
+  }
+
+  .card-lift:hover {
+    transform: translateY(-8px);
+  }
+
+  .page-fade {
+    animation: page-fade 560ms ease-out both;
+  }
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

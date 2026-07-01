@@ -1,0 +1,146 @@
+{
+  "meta": {
+    "version": 1,
+    "database": "nordic_blog_cms",
+    "mode": "seed",
+    "exported_at": "2026-06-30T00:00:00.000Z",
+    "tables": [
+      "categories",
+      "tags",
+      "posts",
+      "post_tags",
+      "photos",
+      "photo_tags",
+      "videos",
+      "site_settings"
+    ]
+  },
+  "tables": {
+    "categories": [
+      {
+        "id": "architecture",
+        "name": "Architecture",
+        "slug": "architecture",
+        "description": "Built environments, concrete forms, and spatial essays.",
+        "sort_order": 10,
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "photography",
+        "name": "Photography",
+        "slug": "photography",
+        "description": "Field notes on light, landscape, and image making.",
+        "sort_order": 20,
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "design",
+        "name": "Design",
+        "slug": "design",
+        "description": "Materiality, systems, interfaces, and restraint.",
+        "sort_order": 30,
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "travel",
+        "name": "Travel",
+        "slug": "travel",
+        "description": "Road notes, place studies, and slow movement.",
+        "sort_order": 40,
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "editorial",
+        "name": "Editorial",
+        "slug": "editorial",
+        "description": "Personal essays and studio notes.",
+        "sort_order": 50,
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      }
+    ],
+    "tags": [
+      {
+        "id": "studio",
+        "name": "Studio",
+        "slug": "studio",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "nordic",
+        "name": "Nordic",
+        "slug": "nordic",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "monochrome",
+        "name": "Monochrome",
+        "slug": "monochrome",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "architecture",
+        "name": "Architecture",
+        "slug": "architecture",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "field-notes",
+        "name": "Field Notes",
+        "slug": "field-notes",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "id": "travel",
+        "name": "Travel",
+        "slug": "travel",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      }
+    ],
+    "posts": [],
+    "post_tags": [],
+    "photos": [],
+    "photo_tags": [],
+    "videos": [],
+    "site_settings": [
+      {
+        "key": "studioName",
+        "value": "Noah. Studio Journal",
+        "value_type": "string",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "key": "tagline",
+        "value": "Editorial notes on travel, photography, films, and quiet design systems.",
+        "value_type": "string",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "key": "titleFormat",
+        "value": "%s | Noah. Studio Journal",
+        "value_type": "string",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "key": "defaultDescription",
+        "value": "A Nordic editorial journal for writing, photography, film, and slow design.",
+        "value_type": "string",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      }
+    ]
+  }
+}

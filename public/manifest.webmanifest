@@ -1,0 +1,22 @@
+{
+  "name": "Noah. Studio Journal",
+  "short_name": "Noah. Studio",
+  "description": "A Nordic editorial personal journal for travel, photography, films, and essays.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
