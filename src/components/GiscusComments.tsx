@@ -1,43 +1,69 @@
 "use client";
 
-import Script from "next/script";
+import { useEffect, useMemo, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { creatorConfig } from "@/data/creator";
+import { useI18n } from "@/i18n/useI18n";
+
+const localizedTitles = {
+  "zh-CN": "评论",
+  "zh-TW": "留言",
+  "en-US": "Discussion",
+};
+
+function canonicalizeDiscussionPath(pathname: string) {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  return normalized.replace(/^\/(?:zh|tw|en)(?=\/)/, "") || "/";
+}
 
 export default function GiscusComments() {
-  const { category, categoryId, mapping, repo, repoId } = creatorConfig.giscus;
+  const pathname = usePathname();
+  const { locale } = useI18n();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { category, categoryId, emitMetadata, inputPosition, lang, reactionsEnabled, repo, repoId, strict, theme } =
+    creatorConfig.giscus;
+  const discussionPath = useMemo(() => canonicalizeDiscussionPath(pathname || "/"), [pathname]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !repo || !repoId || !categoryId) {
+      return;
+    }
+
+    container.replaceChildren();
+
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.setAttribute("data-repo", repo);
+    script.setAttribute("data-repo-id", repoId);
+    script.setAttribute("data-category", category);
+    script.setAttribute("data-category-id", categoryId);
+    script.setAttribute("data-mapping", "specific");
+    script.setAttribute("data-term", discussionPath);
+    script.setAttribute("data-strict", strict);
+    script.setAttribute("data-reactions-enabled", reactionsEnabled);
+    script.setAttribute("data-emit-metadata", emitMetadata);
+    script.setAttribute("data-input-position", inputPosition);
+    script.setAttribute("data-theme", theme);
+    script.setAttribute("data-lang", lang);
+    script.setAttribute("data-loading", "lazy");
+    container.appendChild(script);
+
+    return () => {
+      container.replaceChildren();
+    };
+  }, [category, categoryId, discussionPath, emitMetadata, inputPosition, lang, reactionsEnabled, repo, repoId, strict, theme]);
 
   if (!repo || !repoId || !categoryId) {
-    return (
-      <section className="mt-24 border-t border-outline-variant/10 pt-10">
-        <div className="label-mono mb-4">Comments</div>
-        <p className="text-body-md text-on-surface-variant">
-          Giscus is ready to enable when the repository identifiers are configured.
-        </p>
-      </section>
-    );
+    return null;
   }
 
   return (
-    <section className="mt-24 border-t border-outline-variant/10 pt-10">
-      <div className="label-mono mb-8">Comments</div>
-      <div className="giscus" />
-      <Script
-        crossOrigin="anonymous"
-        data-category={category}
-        data-category-id={categoryId}
-        data-emit-metadata="0"
-        data-input-position="top"
-        data-lang="en"
-        data-loading="lazy"
-        data-mapping={mapping}
-        data-reactions-enabled="1"
-        data-repo={repo}
-        data-repo-id={repoId}
-        data-strict="0"
-        data-theme="preferred_color_scheme"
-        src="https://giscus.app/client.js"
-        strategy="lazyOnload"
-      />
+    <section className="mt-20 border-t border-outline-variant/10 pt-10">
+      <h2 className="mb-8 font-serif text-headline-md text-on-background">{localizedTitles[locale]}</h2>
+      <div ref={containerRef} className="giscus min-h-24" />
     </section>
   );
 }

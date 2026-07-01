@@ -1,6 +1,6 @@
 "use client";
 
-import { PlayCircle, Plus, Star, Trash2, X } from "lucide-react";
+import { CloudUpload, PlayCircle, Plus, Star, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import AdminButton from "@/components/admin/AdminButton";
 import AdminCard from "@/components/admin/AdminCard";
@@ -38,13 +38,14 @@ function parseTags(value: string) {
 }
 
 export default function AdminVideosPage() {
-  const { data, error, addVideo, updateVideo, deleteVideo, uploadAsset } = useCmsData();
+  const { data, error, addVideo, updateVideo, deleteVideo, uploadAsset, uploadAssets } = useCmsData();
   const { dictionary } = useAdminI18n();
   const [selectedId, setSelectedId] = useState<string>("");
   const selectedVideo = useMemo(() => data.videos.find((video) => video.id === selectedId) ?? null, [data.videos, selectedId]);
   const [draft, setDraft] = useState<Video | null>(selectedVideo ?? null);
   const [saveState, setSaveState] = useState("Saved");
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDraft(selectedVideo ?? null);
@@ -114,11 +115,44 @@ export default function AdminVideosPage() {
     }
   }
 
+  async function handleVideoUploads(files: File[]) {
+    if (files.length === 0) {
+      return;
+    }
+
+    setSaveState("Saving");
+    try {
+      const uploadedFiles = await uploadAssets(files, "videos");
+      let lastCreated: Video | null = null;
+      for (const [index, file] of files.entries()) {
+        const uploaded = uploadedFiles[index];
+        if (!uploaded) {
+          continue;
+        }
+        const title = file.name.replace(/\.[^.]+$/, "") || "Untitled Video";
+        lastCreated = await addVideo({
+          ...createVideo(),
+          title,
+          videoUrl: uploaded.url,
+          platform: "Local URL",
+          tags: ["Local URL"],
+        });
+      }
+      if (lastCreated) {
+        setSelectedId(lastCreated.id);
+        setDraft(lastCreated);
+      }
+      setSaveState("Saved");
+    } catch {
+      setSaveState("Unsaved");
+    }
+  }
+
   return (
     <main className="grid h-auto gap-8 px-margin-mobile pb-section-gap md:px-margin-desktop xl:h-[calc(100vh-8rem)] xl:grid-cols-[minmax(0,1fr)_384px] xl:overflow-hidden">
       <input
         ref={coverInputRef}
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/svg+xml,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg,.heic,.heif"
         className="hidden"
         type="file"
         onChange={(event) => {
@@ -129,16 +163,36 @@ export default function AdminVideosPage() {
           }
         }}
       />
+      <input
+        ref={videoInputRef}
+        accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/mpeg,.mp4,.m4v,.mov,.webm,.avi,.mkv,.mpeg,.mpg"
+        className="hidden"
+        multiple
+        type="file"
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          event.currentTarget.value = "";
+          if (files.length > 0) {
+            void handleVideoUploads(files);
+          }
+        }}
+      />
       <section className="min-h-0 overflow-y-auto pr-0 xl:pr-2">
         <header className="mb-12 flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div>
           <h1 className="font-serif text-display-lg text-on-surface">{dictionary.videos.title}</h1>
           <p className="mt-4 max-w-2xl text-body-lg text-on-surface-variant">{dictionary.videos.description}</p>
         </div>
-        <AdminButton className="rounded-full" onClick={() => void handleNewVideo()}>
-          <Plus aria-hidden size={15} />
-          {dictionary.videos.newVideo}
-        </AdminButton>
+        <div className="flex flex-wrap gap-3">
+          <AdminButton className="rounded-full" onClick={() => videoInputRef.current?.click()}>
+            <CloudUpload aria-hidden size={15} />
+            {dictionary.videos.uploadVideo}
+          </AdminButton>
+          <AdminButton className="rounded-full" onClick={() => void handleNewVideo()}>
+            <Plus aria-hidden size={15} />
+            {dictionary.videos.newVideo}
+          </AdminButton>
+        </div>
         </header>
         {error ? (
           <div className="mb-6 border border-secondary/30 bg-secondary/10 px-4 py-3 font-mono text-label-mono uppercase tracking-widest text-secondary">

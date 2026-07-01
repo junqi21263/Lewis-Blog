@@ -94,6 +94,9 @@ type UploadResult = {
   size: number;
   content_type: string;
 };
+type UploadManyResult = {
+  files: UploadResult[];
+};
 
 type RequestScope = "admin" | "public";
 type SaveOptions = {
@@ -632,6 +635,26 @@ export function useCmsData() {
     }
   }, []);
 
+  const uploadAssets = useCallback(async (files: File[], folder: string) => {
+    setError(null);
+    const formData = new FormData();
+    formData.append("folder", folder);
+    for (const file of files) {
+      formData.append("files", file);
+    }
+
+    try {
+      const result = await apiRequest<UploadManyResult | UploadResult>("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      return "files" in result ? result.files : [result];
+    } catch (requestError) {
+      setError(normalizeError(requestError));
+      throw requestError;
+    }
+  }, []);
+
   const resetCmsData = useCallback(async () => {
     await refreshData();
   }, [refreshData]);
@@ -655,6 +678,7 @@ export function useCmsData() {
       deleteVideo,
       updateSiteSettings,
       uploadAsset,
+      uploadAssets,
       resetCmsData,
     }),
     [
@@ -676,6 +700,7 @@ export function useCmsData() {
       updateSiteSettings,
       updateVideo,
       uploadAsset,
+      uploadAssets,
     ],
   );
 }

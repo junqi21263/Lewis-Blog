@@ -332,6 +332,43 @@ function renderNavigation(post: ArticleRow, articles: ArticleRow[], locale: Loca
   }</section>`;
 }
 
+function discussionTitle(locale: Locale) {
+  if (locale === "zh-CN") return "评论";
+  if (locale === "zh-TW") return "留言";
+  return "Discussion";
+}
+
+function renderGiscusComments(slug: string, locale: Locale) {
+  const { category, categoryId, emitMetadata, inputPosition, lang, reactionsEnabled, repo, repoId, strict, theme } = creatorConfig.giscus;
+  if (!repo || !repoId || !categoryId) {
+    return "";
+  }
+
+  const discussionPath = `/journal/${slug}`;
+  return `<section class="mt-20 border-t border-outline-variant/10 pt-10">
+    <h2 class="mb-8 font-serif text-headline-md text-on-background">${escapeHtml(discussionTitle(locale))}</h2>
+    <div class="giscus min-h-24">
+      <script src="https://giscus.app/client.js"
+        data-repo="${escapeAttribute(repo)}"
+        data-repo-id="${escapeAttribute(repoId)}"
+        data-category="${escapeAttribute(category)}"
+        data-category-id="${escapeAttribute(categoryId)}"
+        data-mapping="specific"
+        data-term="${escapeAttribute(discussionPath)}"
+        data-strict="${escapeAttribute(strict)}"
+        data-reactions-enabled="${escapeAttribute(reactionsEnabled)}"
+        data-emit-metadata="${escapeAttribute(emitMetadata)}"
+        data-input-position="${escapeAttribute(inputPosition)}"
+        data-theme="${escapeAttribute(theme)}"
+        data-lang="${escapeAttribute(lang)}"
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async>
+      </script>
+    </div>
+  </section>`;
+}
+
 function renderHeader(locale: Locale) {
   const linkClass = "font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-on-background";
   return `
@@ -488,11 +525,8 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
             <div class="label-mono mb-3">Reading Completion</div>
             <p class="text-body-md text-on-surface-variant" data-reading-completion>Reach the end of the essay to mark it complete on this device.</p>
           </div>
+          ${renderGiscusComments(post.slug, locale)}
           ${renderNavigation(post, articles, locale)}
-          <section class="mt-24 border-t border-outline-variant/10 pt-10">
-            <div class="label-mono mb-4">Comments</div>
-            <p class="text-body-md text-on-surface-variant">Giscus is ready to enable when the repository identifiers are configured.</p>
-          </section>
         </div>
       </div>
     </article>

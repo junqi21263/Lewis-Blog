@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import AdminButton from "@/components/admin/AdminButton";
 import AdminCard from "@/components/admin/AdminCard";
@@ -11,13 +12,14 @@ import { useCmsData } from "@/hooks/useCmsData";
 import { useAdminI18n } from "@/i18n/admin";
 
 export default function AdminSettingsPage() {
-  const { data, error, updateSiteSettings } = useCmsData();
+  const { data, error, updateSiteSettings, uploadAsset } = useCmsData();
   const { dictionary } = useAdminI18n();
   const [settings, setSettings] = useState(data.siteSettings);
   const [saveState, setSaveState] = useState("Saved");
   const initializedRef = useRef(false);
   const skipNextSaveRef = useRef(true);
   const timerRef = useRef<number | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const { isDark, toggleTheme } = useThemeMode();
 
   useEffect(() => {
@@ -76,9 +78,35 @@ export default function AdminSettingsPage() {
     }
   }
 
+  async function handleLogoUpload(file: File) {
+    setSaveState("Saving");
+    try {
+      const uploaded = await uploadAsset(file, "branding");
+      const nextSettings = { ...settings, logoImageUrl: uploaded.url };
+      setSettings(nextSettings);
+      await updateSiteSettings(nextSettings);
+      setSaveState("Saved");
+    } catch {
+      setSaveState("Unsaved");
+    }
+  }
+
   return (
     <main className="px-margin-mobile pb-section-gap md:px-margin-desktop">
       <div className="max-w-4xl">
+        <input
+          ref={logoInputRef}
+          accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/svg+xml,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg,.heic,.heif"
+          className="hidden"
+          type="file"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.currentTarget.value = "";
+            if (file) {
+              void handleLogoUpload(file);
+            }
+          }}
+        />
         <header className="mb-16">
           <div className="mb-4 flex flex-wrap items-center gap-4">
             <h1 className="font-serif text-display-lg text-on-surface">{dictionary.settings.title}</h1>
@@ -116,10 +144,16 @@ export default function AdminSettingsPage() {
               <div>
                 <span className="label-mono mb-4 block">{dictionary.settings.logoMark}</span>
                 <div className="flex items-center gap-6">
-                  <div className="grid size-24 place-items-center rounded-full border border-outline-variant/20 bg-surface-container-high">
-                    <span className="font-serif text-headline-lg text-on-surface">N.</span>
+                  <div className="relative grid size-24 place-items-center overflow-hidden rounded-full border border-outline-variant/20 bg-surface-container-high">
+                    {settings.logoImageUrl ? (
+                      <Image alt={`${settings.studioName} logo`} className="object-cover grayscale" fill sizes="96px" src={settings.logoImageUrl} />
+                    ) : (
+                      <span className="font-serif text-headline-lg text-on-surface">N.</span>
+                    )}
                   </div>
-                  <AdminButton>{dictionary.settings.replace}</AdminButton>
+                  <AdminButton onClick={() => logoInputRef.current?.click()}>
+                    {saveState === "Saving" ? "Uploading" : dictionary.settings.replace}
+                  </AdminButton>
                 </div>
               </div>
             </div>

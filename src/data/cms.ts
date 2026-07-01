@@ -88,6 +88,7 @@ export type SiteSettings = {
   tagline: string;
   titleFormat: string;
   defaultDescription: string;
+  logoImageUrl: string;
 };
 
 export type CmsData = {
@@ -130,6 +131,7 @@ export const defaultCmsData: CmsData = {
     tagline: "Editorial CMS",
     titleFormat: "%s | Lewis Photograph Blog",
     defaultDescription: "A minimalist editorial platform focusing on high-end visual narrative and sophisticated design.",
+    logoImageUrl: "",
   },
 };
 

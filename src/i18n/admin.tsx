@@ -86,6 +86,7 @@ type AdminDictionary = {
     title: string;
     description: string;
     newVideo: string;
+    uploadVideo: string;
     noFilmsTitle: string;
     noFilmsDescription: string;
     metadata: string;
@@ -195,6 +196,7 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       title: "影片",
       description: "一个克制的影片目录，用于管理视频条目、封面和播放信息。",
       newVideo: "新建影片",
+      uploadVideo: "上传影片",
       noFilmsTitle: "No films yet",
       noFilmsDescription: "添加第一条影片记录，开始动态影像归档。",
       metadata: "元数据",
@@ -302,6 +304,7 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       title: "影片",
       description: "一個克制的影片目錄，用於管理影片條目、封面與播放資訊。",
       newVideo: "新增影片",
+      uploadVideo: "上傳影片",
       noFilmsTitle: "No films yet",
       noFilmsDescription: "新增第一條影片記錄，開始動態影像歸檔。",
       metadata: "中繼資料",
@@ -409,6 +412,7 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       title: "Cinematography",
       description: "A restrained catalogue for film entries, motion studies, and cover treatments.",
       newVideo: "New Video",
+      uploadVideo: "Upload Video",
       noFilmsTitle: "No films yet",
       noFilmsDescription: "Add the first film entry to begin the moving image archive.",
       metadata: "Metadata",

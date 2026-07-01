@@ -112,7 +112,7 @@ async function readExif(file: File): Promise<Partial<Photo>> {
 }
 
 export default function AdminGalleryPage() {
-  const { data, error, addPhoto, updatePhoto, deletePhoto, uploadAsset } = useCmsData();
+  const { data, error, addPhoto, updatePhoto, deletePhoto, uploadAssets } = useCmsData();
   const { dictionary } = useAdminI18n();
   const [selectedId, setSelectedId] = useState<string>("");
   const selectedPhoto = useMemo(() => data.photos.find((photo) => photo.id === selectedId) ?? null, [data.photos, selectedId]);
@@ -128,22 +128,35 @@ export default function AdminGalleryPage() {
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   }
 
-  async function handleUpload(file: File) {
+  async function handleUploads(files: File[]) {
+    if (files.length === 0) {
+      return;
+    }
+
     setSaveState("Saving");
     try {
-      const uploaded = await uploadAsset(file, "gallery");
-      const exif = await readExif(file);
-      const photo = createPhoto();
-      const nextPhoto = {
-        ...photo,
-        ...exif,
-        title: file.name.replace(/\.[^.]+$/, "") || photo.title,
-        imageUrl: uploaded.url,
-        altText: file.name.replace(/\.[^.]+$/, "") || photo.title,
-      };
-      const created = await addPhoto(nextPhoto);
-      setSelectedId(created.id);
-      setDraft(created);
+      const uploadedFiles = await uploadAssets(files, "gallery");
+      let lastCreated: Photo | null = null;
+      for (const [index, file] of files.entries()) {
+        const uploaded = uploadedFiles[index];
+        if (!uploaded) {
+          continue;
+        }
+        const exif = await readExif(file);
+        const photo = createPhoto();
+        const nextPhoto = {
+          ...photo,
+          ...exif,
+          title: file.name.replace(/\.[^.]+$/, "") || photo.title,
+          imageUrl: uploaded.url,
+          altText: file.name.replace(/\.[^.]+$/, "") || photo.title,
+        };
+        lastCreated = await addPhoto(nextPhoto);
+      }
+      if (lastCreated) {
+        setSelectedId(lastCreated.id);
+        setDraft(lastCreated);
+      }
       setSaveState("Saved");
     } catch {
       setSaveState("Unsaved");
@@ -243,14 +256,15 @@ export default function AdminGalleryPage() {
     <main className="mx-auto max-w-7xl px-margin-mobile pb-section-gap md:px-margin-desktop">
       <input
         ref={uploadInputRef}
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/tiff,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.tif,.tiff,.heic,.heif"
         className="hidden"
+        multiple
         type="file"
         onChange={(event) => {
-          const file = event.target.files?.[0];
+          const files = Array.from(event.target.files ?? []);
           event.currentTarget.value = "";
-          if (file) {
-            void handleUpload(file);
+          if (files.length > 0) {
+            void handleUploads(files);
           }
         }}
       />

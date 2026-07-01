@@ -287,8 +287,8 @@ export default function ArticleDetailClient({ slug }: { slug: string }) {
             </div>
             <Footnotes footnotes={analysis.footnotes} />
             <ReadingCompletion slug={post.slug} />
-            <ArticleNavigation navigation={navigation} />
             <GiscusComments />
+            <ArticleNavigation navigation={navigation} />
           </div>
         </div>
       </article>
