@@ -39,9 +39,10 @@ const config: Config = {
         "margin-mobile": "24px",
       },
       fontFamily: {
-        body: ["var(--font-inter)", "Inter", "sans-serif"],
-        mono: ["var(--font-jetbrains)", "JetBrains Mono", "monospace"],
-        serif: ["var(--font-eb-garamond)", "EB Garamond", "serif"],
+        body: ["var(--font-sans)"],
+        sans: ["var(--font-sans)"],
+        mono: ["var(--font-mono)"],
+        serif: ["var(--font-serif)"],
       },
       fontSize: {
         "body-lg": ["18px", { lineHeight: "32px", fontWeight: "400" }],

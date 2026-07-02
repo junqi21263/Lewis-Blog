@@ -65,7 +65,7 @@ export default function AdminTopbar() {
         <div className="hidden lg:block">
           <AdminLanguageSwitcher />
         </div>
-        <SaveIndicator status="Saved" />
+        <SaveIndicator status={dictionary.editor.saved} />
         <Link className="hidden lg:block" href="/" target="_blank">
           <AdminButton className="rounded-full px-4 py-2" variant="ghost">
             <Eye aria-hidden size={15} strokeWidth={1.6} />

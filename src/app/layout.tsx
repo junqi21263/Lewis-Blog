@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EB_Garamond, Inter, JetBrains_Mono } from "next/font/google";
+import { Cormorant_Garamond, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
 import SiteChrome from "@/components/SiteChrome";
@@ -9,19 +9,21 @@ import { googleSiteVerification, siteDescription, siteName, siteUrl } from "@/da
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans-loaded",
   display: "swap",
 });
 
-const ebGaramond = EB_Garamond({
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  variable: "--font-eb-garamond",
+  variable: "--font-serif-loaded",
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
-const jetBrainsMono = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains",
+  variable: "--font-mono-loaded",
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -80,7 +82,7 @@ export default function RootLayout({
 }>) {
   return (
     <html className="dark" lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${ebGaramond.variable} ${jetBrainsMono.variable} antialiased`}>
+      <body className={`${inter.variable} ${cormorant.variable} ${ibmPlexMono.variable} antialiased`}>
         <StructuredData data={websiteJsonLd()} />
         <StructuredData data={organizationJsonLd()} />
         <SiteChrome>{children}</SiteChrome>

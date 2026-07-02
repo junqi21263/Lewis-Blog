@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 :root {
+  --font-serif: var(--font-serif-loaded), "Noto Serif SC", "Noto Serif TC", "Songti SC", "STSong", Georgia, serif;
+  --font-sans: var(--font-sans-loaded), "Noto Sans SC", "Noto Sans TC", "PingFang SC", "PingFang TC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: var(--font-mono-loaded), "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-background: 246 244 240;
   --color-surface: 246 244 240;
   --color-surface-container-lowest: 248 247 243;
@@ -49,7 +52,7 @@ body {
   overflow-x: hidden;
   background: rgb(var(--color-background));
   color: rgb(var(--color-on-background));
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-sans);
   text-rendering: geometricPrecision;
 }
 

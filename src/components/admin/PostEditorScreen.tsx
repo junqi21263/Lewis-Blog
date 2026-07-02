@@ -29,7 +29,9 @@ import { createEmptyPost, getCategoryById, getPostTags, type Post, type Translat
 import { useCmsData } from "@/hooks/useCmsData";
 import type { Locale } from "@/i18n/config";
 import type { LocalizedTextMap } from "@/i18n/content";
-import { getReadingTime, getWordCount, parseMarkdownBlocks, slugifyTitle, type MarkdownBlock } from "@/lib/editor";
+import { useAdminI18n } from "@/i18n/admin";
+import { getReadingMinutes, getWordCount, parseMarkdownBlocks, slugifyTitle, type MarkdownBlock } from "@/lib/editor";
+import { applyMarkdownCommand, type MarkdownCommand } from "@/lib/markdownEditor";
 import { cn } from "@/lib/utils";
 
 type PostEditorScreenProps = {
@@ -76,15 +78,15 @@ const translationFieldLabels: Array<{ field: TranslationField; label: string }> 
   { field: "seoDescription", label: "SEO Description" },
 ];
 
-const toolbarItems = [
-  { label: "Heading 1", icon: Heading1 },
-  { label: "Heading 2", icon: Heading2 },
-  { label: "Paragraph", icon: Type },
-  { label: "Italic", icon: Italic },
-  { label: "Quote", icon: Quote },
-  { label: "Link", icon: LinkIcon },
-  { label: "Image", icon: ImageIcon },
-  { label: "Code", icon: Code },
+const toolbarItems: Array<{ command: MarkdownCommand; icon: typeof Heading1; divider?: boolean }> = [
+  { command: "h1", icon: Heading1 },
+  { command: "h2", icon: Heading2 },
+  { command: "paragraph", icon: Type },
+  { command: "italic", icon: Italic, divider: true },
+  { command: "quote", icon: Quote },
+  { command: "link", icon: LinkIcon, divider: true },
+  { command: "image", icon: ImageIcon },
+  { command: "code", icon: Code },
 ];
 
 function fieldFromMap(map: LocalizedTextMap, locale: Locale, fallback = "") {
@@ -310,6 +312,7 @@ function PreviewBlock({ block }: { block: MarkdownBlock }) {
 
 export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   const { data, isReady, updatePost, error } = useCmsData();
+  const { dictionary } = useAdminI18n();
   const post = data.posts.find((item) => item.id === postId);
   const isNew = !postId;
   const [draft, setDraft] = useState<EditorDraft>(() => createInitialDraft(post));
@@ -323,6 +326,8 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   const lastSavedRef = useRef("");
   const autoSaveTimerRef = useRef<number | null>(null);
   const savingTimerRef = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editorCopy = dictionary.editor;
 
   const activeFields = draft.localizedFields[activeLocale];
   const activeTitle = activeFields.title || (activeLocale === "zh-CN" ? draft.title : "");
@@ -331,7 +336,8 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   const activeSeoTitle = activeFields.seoTitle || (activeLocale === "zh-CN" ? draft.seoTitle : "");
   const activeSeoDescription = activeFields.seoDescription || (activeLocale === "zh-CN" ? draft.seoDescription : "");
   const wordCount = useMemo(() => getWordCount(activeContent), [activeContent]);
-  const readingTime = useMemo(() => getReadingTime(activeContent), [activeContent]);
+  const readingMinutes = useMemo(() => getReadingMinutes(activeContent), [activeContent]);
+  const readingTime = useMemo(() => editorCopy.minRead(readingMinutes), [editorCopy, readingMinutes]);
   const tagList = useMemo(
     () =>
       draft.tags
@@ -354,11 +360,12 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
 
   const previewSource = {
     title: activeTitle || draft.title,
-    excerpt: activeExcerpt || draft.subtitle || draft.excerpt || "A new studio note in progress.",
+    excerpt: activeExcerpt || draft.subtitle || draft.excerpt || editorCopy.newStudioNote,
     content: activeContent || draft.content,
   };
   const previewBlocks = useMemo(() => parseMarkdownBlocks(previewSource.content), [previewSource.content]);
-  const previewReadingTime = useMemo(() => getReadingTime(previewSource.content), [previewSource.content]);
+  const previewReadingMinutes = useMemo(() => getReadingMinutes(previewSource.content), [previewSource.content]);
+  const previewReadingTime = useMemo(() => editorCopy.minRead(previewReadingMinutes), [editorCopy, previewReadingMinutes]);
 
   useEffect(() => {
     if (!isReady) {
@@ -487,6 +494,34 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
       return next;
     });
     setSaveState("Unsaved");
+  }
+
+  function localizedSaveState(state: SaveState) {
+    if (state === "Saved") return editorCopy.saved;
+    if (state === "Saving") return editorCopy.saving;
+    return editorCopy.unsaved;
+  }
+
+  function handleToolbarCommand(command: MarkdownCommand) {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const result = applyMarkdownCommand(textarea.value, { start: textarea.selectionStart, end: textarea.selectionEnd }, command);
+    textarea.focus();
+    textarea.setSelectionRange(result.replacementStart, result.replacementEnd);
+    const inserted = document.execCommand("insertText", false, result.replacement);
+    if (!inserted) {
+      textarea.setRangeText(result.replacement, result.replacementStart, result.replacementEnd, "select");
+    }
+    textarea.setSelectionRange(result.selectionStart, result.selectionEnd);
+    updateLocalizedField("content", textarea.value);
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(result.selectionStart, result.selectionEnd);
+    });
   }
 
   function toggleTranslationLock(locale: EditorLocale, field: TranslationField) {
@@ -647,28 +682,28 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
     <main className="h-auto overflow-visible px-margin-mobile pb-6 md:h-[calc(100vh-6rem)] md:overflow-hidden md:px-margin-desktop">
       <section className="mb-6 flex flex-col justify-between gap-4 border-b border-outline-variant/10 pb-6 lg:flex-row lg:items-center">
         <div className="flex flex-wrap items-center gap-4">
-          <h1 className="font-serif text-headline-md text-on-surface">{isNew ? "New Editorial Entry" : draft.localizedFields["zh-CN"].title || "Untitled Editorial"}</h1>
-          <SaveIndicator status={saveState} />
+          <h1 className="font-serif text-headline-md text-on-surface">{isNew ? editorCopy.newEditorialEntry : draft.localizedFields["zh-CN"].title || editorCopy.untitledEditorial}</h1>
+          <SaveIndicator status={localizedSaveState(saveState)} />
           <span className="font-mono text-label-mono uppercase tracking-widest text-outline">{readingTime}</span>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <AdminButton variant="ghost">
             <Eye aria-hidden size={15} />
-            Preview
+            {editorCopy.preview}
           </AdminButton>
           <AdminButton variant="ghost" onClick={() => void saveAsDraft()}>
             <Save aria-hidden size={15} />
-            Save Draft
+            {editorCopy.saveDraft}
           </AdminButton>
           {draft.status === "published" ? (
             <AdminButton variant="ghost" onClick={() => void unpublish()}>
               <RotateCcw aria-hidden size={15} />
-              Unpublish
+              {editorCopy.unpublish}
             </AdminButton>
           ) : null}
           <AdminButton variant="primary" onClick={() => void publishNow()}>
             <Send aria-hidden size={15} />
-            Publish
+            {editorCopy.publish}
           </AdminButton>
         </div>
       </section>
@@ -705,21 +740,21 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
             Regenerate {activeLocale === "zh-TW" ? "Traditional" : "English"}
           </AdminButton>
         ) : (
-          <span className="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">Source language</span>
+          <span className="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">{editorCopy.sourceLanguage}</span>
         )}
       </section>
 
       <section className="grid h-auto grid-cols-1 overflow-hidden border border-outline-variant/10 bg-background md:h-[calc(100%-6rem)] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_420px]">
         <aside className="max-h-none overflow-y-auto border-b border-outline-variant/10 bg-surface-container-lowest p-6 lg:max-h-full lg:border-b-0 lg:border-r">
           <div className="space-y-7">
-            <h2 className="border-b border-outline-variant/20 pb-2 font-mono text-label-mono uppercase tracking-widest text-primary">Document Settings</h2>
-            <AdminTextarea label={`Title - ${activeLocale}`} placeholder="Enter article title..." rows={2} value={activeTitle} onChange={(event) => updateLocalizedField("title", event.target.value)} />
+            <h2 className="border-b border-outline-variant/20 pb-2 font-mono text-label-mono uppercase tracking-widest text-primary">{editorCopy.documentSettings}</h2>
+            <AdminTextarea label={`${editorCopy.title} - ${activeLocale}`} placeholder="Enter article title..." rows={2} value={activeTitle} onChange={(event) => updateLocalizedField("title", event.target.value)} />
             {activeLocale === "zh-CN" ? (
-              <AdminTextarea label="Subtitle" placeholder="Short editorial subtitle..." rows={2} value={draft.subtitle} onChange={(event) => updateDraft("subtitle", event.target.value)} />
+              <AdminTextarea label={editorCopy.subtitle} placeholder="Short editorial subtitle..." rows={2} value={draft.subtitle} onChange={(event) => updateDraft("subtitle", event.target.value)} />
             ) : null}
-            <AdminTextarea label={`Excerpt - ${activeLocale}`} placeholder="Brief summary for listings..." rows={3} value={activeExcerpt} onChange={(event) => updateLocalizedField("excerpt", event.target.value)} />
+            <AdminTextarea label={`${editorCopy.excerpt} - ${activeLocale}`} placeholder="Brief summary for listings..." rows={3} value={activeExcerpt} onChange={(event) => updateLocalizedField("excerpt", event.target.value)} />
             <AdminInput
-              label="Slug"
+              label={editorCopy.slug}
               placeholder="article-url-slug"
               value={draft.slug}
               onChange={(event) => {
@@ -728,7 +763,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
               }}
             />
             <label className="block">
-              <FieldLabel>Category</FieldLabel>
+              <FieldLabel>{editorCopy.category}</FieldLabel>
               <select className="w-full border-0 border-b border-outline-variant/30 bg-transparent px-0 py-3 text-body-md text-on-surface focus:border-primary focus:ring-0" value={draft.categoryId} onChange={(event) => updateDraft("categoryId", event.target.value)}>
                 {data.categories.map((categoryOption) => (
                   <option key={categoryOption.id} className="bg-surface" value={categoryOption.id}>
@@ -737,32 +772,32 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
                 ))}
               </select>
             </label>
-            <AdminInput label="Tags" list="cms-tags" placeholder="Studio, Notes, Architecture" value={draft.tags} onChange={(event) => updateDraft("tags", event.target.value)} />
+            <AdminInput label={editorCopy.tags} list="cms-tags" placeholder="Studio, Notes, Architecture" value={draft.tags} onChange={(event) => updateDraft("tags", event.target.value)} />
             <datalist id="cms-tags">
               {knownTagNames.map((tag) => (
                 <option key={tag} value={tag} />
               ))}
             </datalist>
-            <AdminInput label="Cover Image" placeholder="https://..." value={draft.coverImage} onChange={(event) => updateDraft("coverImage", event.target.value)} />
+            <AdminInput label={editorCopy.coverImage} placeholder="https://..." value={draft.coverImage} onChange={(event) => updateDraft("coverImage", event.target.value)} />
             <div className="h-32 overflow-hidden border border-dashed border-outline-variant/30 bg-surface">
               <div className="h-full bg-cover bg-center grayscale" style={{ backgroundImage: `url("${draft.coverImage}")` }} />
             </div>
             <label className="block">
-              <FieldLabel>Status</FieldLabel>
+              <FieldLabel>{editorCopy.status}</FieldLabel>
               <select className="w-full border-0 border-b border-outline-variant/30 bg-transparent px-0 py-3 text-body-md text-on-surface focus:border-primary focus:ring-0" value={draft.status} onChange={(event) => updateDraft("status", event.target.value as EditorStatus)}>
-                <option className="bg-surface" value="draft">Draft</option>
-                <option className="bg-surface" value="published">Published</option>
-                <option className="bg-surface" value="scheduled">Scheduled</option>
+                <option className="bg-surface" value="draft">{editorCopy.draft}</option>
+                <option className="bg-surface" value="published">{editorCopy.published}</option>
+                <option className="bg-surface" value="scheduled">{editorCopy.scheduled}</option>
               </select>
             </label>
-            <AdminInput label="Published At" placeholder="2026-07-01T09:00" type="datetime-local" value={draft.publishedAt} onChange={(event) => updateDraft("publishedAt", event.target.value)} />
-            <ToggleField checked={draft.featured} hint="Displays in editorial highlights" label="Featured" onChange={(checked) => updateDraft("featured", checked)} />
-            <ToggleField checked={draft.pinned} hint="Keeps entry above normal order" label="Pinned" onChange={(checked) => updateDraft("pinned", checked)} />
+            <AdminInput label={editorCopy.publishedAt} placeholder="2026-07-01T09:00" type="datetime-local" value={draft.publishedAt} onChange={(event) => updateDraft("publishedAt", event.target.value)} />
+            <ToggleField checked={draft.featured} hint="Displays in editorial highlights" label={editorCopy.featured} onChange={(checked) => updateDraft("featured", checked)} />
+            <ToggleField checked={draft.pinned} hint="Keeps entry above normal order" label={editorCopy.pinned} onChange={(checked) => updateDraft("pinned", checked)} />
             <div className="border-t border-outline-variant/10 pt-4">
-              <h2 className="mb-4 font-mono text-label-mono uppercase tracking-widest text-primary">SEO Options</h2>
+              <h2 className="mb-4 font-mono text-label-mono uppercase tracking-widest text-primary">{editorCopy.seoOptions}</h2>
               <div className="space-y-7">
-                <AdminInput label={`SEO Title - ${activeLocale}`} placeholder="Leave blank to use title" value={activeSeoTitle} onChange={(event) => updateLocalizedField("seoTitle", event.target.value)} />
-                <AdminTextarea label={`SEO Description - ${activeLocale}`} placeholder="Search description..." rows={3} value={activeSeoDescription} onChange={(event) => updateLocalizedField("seoDescription", event.target.value)} />
+                <AdminInput label={`${editorCopy.seoTitle} - ${activeLocale}`} placeholder="Leave blank to use title" value={activeSeoTitle} onChange={(event) => updateLocalizedField("seoTitle", event.target.value)} />
+                <AdminTextarea label={`${editorCopy.seoDescription} - ${activeLocale}`} placeholder="Search description..." rows={3} value={activeSeoDescription} onChange={(event) => updateLocalizedField("seoDescription", event.target.value)} />
               </div>
             </div>
             {activeLocale !== "zh-CN" ? (
@@ -807,15 +842,21 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
         </aside>
 
         <section className="flex min-h-[720px] flex-col bg-background md:min-h-0">
-          <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-outline-variant/10 bg-surface-container-lowest/50 px-6 text-on-surface-variant">
-            {toolbarItems.map((item, index) => {
+          <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-outline-variant/10 bg-surface-container-lowest/50 px-4 text-on-surface-variant md:px-6">
+            {toolbarItems.map((item) => {
               const Icon = item.icon;
+              const label = editorCopy.toolbar[item.command];
               return (
                 <button
-                  key={item.label}
-                  aria-label={item.label}
-                  className={`p-1 transition hover:text-primary ${index === 3 || index === 5 ? "ml-3 border-l border-outline-variant/20 pl-4" : ""}`}
+                  key={item.command}
+                  aria-label={label}
+                  className={cn("shrink-0 p-2 transition hover:text-primary focus:outline-none focus:ring-1 focus:ring-outline-variant/40", item.divider ? "ml-2 border-l border-outline-variant/20 pl-4" : "")}
+                  title={label}
                   type="button"
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    handleToolbarCommand(item.command);
+                  }}
                 >
                   <Icon aria-hidden size={18} strokeWidth={1.6} />
                 </button>
@@ -825,10 +866,12 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
           <div className="flex-1 overflow-y-auto py-10 md:py-14">
             <div className="mx-auto w-full max-w-3xl px-6 md:px-8">
               <label className="mb-4 flex items-center justify-between">
-                <span className="label-mono">Markdown / MDX</span>
-                <span className="font-mono text-label-mono uppercase tracking-widest text-outline">Words: {wordCount}</span>
+                <span className="label-mono">{editorCopy.markdownMdx}</span>
+                <span className="font-mono text-label-mono uppercase tracking-widest text-outline">{editorCopy.words(wordCount)}</span>
               </label>
               <textarea
+                ref={textareaRef}
+                aria-label={editorCopy.markdownMdx}
                 className="min-h-[62vh] w-full resize-none border-0 bg-transparent font-body text-[18px] leading-8 text-on-surface outline-none focus:ring-0 placeholder:text-on-surface-variant/50"
                 spellCheck
                 value={activeContent}
@@ -838,16 +881,16 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
           </div>
           <div className="flex h-10 shrink-0 items-center justify-between border-t border-outline-variant/10 bg-surface-container-lowest px-6">
             <div className="flex gap-4">
-              <span className="font-mono text-label-mono text-outline">Words: {wordCount}</span>
-              <span className="font-mono text-label-mono text-outline">Reading time: {readingTime}</span>
+              <span className="font-mono text-label-mono text-outline">{editorCopy.words(wordCount)}</span>
+              <span className="font-mono text-label-mono text-outline">{editorCopy.readingTime}: {readingTime}</span>
             </div>
-            <span className="hidden font-mono text-label-mono text-outline sm:block">Markdown / MDX Supported</span>
+            <span className="hidden font-mono text-label-mono text-outline sm:block">{editorCopy.markdownSupported}</span>
           </div>
         </section>
 
         <aside className="max-h-none overflow-y-auto border-t border-outline-variant/10 bg-surface-container-low xl:max-h-full xl:border-l xl:border-t-0">
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-outline-variant/10 bg-surface-container-low/90 p-4 backdrop-blur-md">
-            <span className="font-mono text-label-mono uppercase tracking-widest text-primary">Live Preview</span>
+            <span className="font-mono text-label-mono uppercase tracking-widest text-primary">{editorCopy.livePreview}</span>
             <div className="flex items-center gap-3">
               <div className="inline-flex rounded-full border border-outline-variant/20 p-1">
                 {editorLocales.map((item) => (
@@ -871,14 +914,14 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
           <article className="pb-20">
             <header className="px-6 pb-10 pt-10 md:px-8">
               <p className="mb-5 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">
-                Journal - {category.name}
+                {editorCopy.journal} - {category.name}
               </p>
-              <h2 className="mb-6 font-serif text-display-lg leading-tight text-on-background">{previewSource.title || "Untitled Editorial"}</h2>
+              <h2 className="mb-6 font-serif text-display-lg leading-tight text-on-background">{previewSource.title || editorCopy.untitledEditorial}</h2>
               <p className="mb-6 text-body-lg italic text-on-surface-variant">{previewSource.excerpt}</p>
               <div className="flex flex-wrap items-center gap-3 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">
                 <span>Noah. Studio</span>
                 <span className="size-1 rounded-full bg-outline-variant" />
-                <span>{draft.publishedAt || "Unscheduled"}</span>
+                <span>{draft.publishedAt || editorCopy.unscheduled}</span>
                 <span className="size-1 rounded-full bg-outline-variant" />
                 <span>{previewReadingTime}</span>
               </div>

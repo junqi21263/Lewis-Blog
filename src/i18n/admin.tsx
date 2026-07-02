@@ -55,6 +55,46 @@ type AdminDictionary = {
     noArticlesTitle: string;
     noArticlesDescription: string;
   };
+  editor: {
+    newEditorialEntry: string;
+    saved: string;
+    saving: string;
+    unsaved: string;
+    minRead: (minutes: number) => string;
+    preview: string;
+    saveDraft: string;
+    publish: string;
+    unpublish: string;
+    documentSettings: string;
+    title: string;
+    subtitle: string;
+    excerpt: string;
+    slug: string;
+    category: string;
+    tags: string;
+    coverImage: string;
+    status: string;
+    livePreview: string;
+    untitledEditorial: string;
+    newStudioNote: string;
+    sourceLanguage: string;
+    draft: string;
+    published: string;
+    scheduled: string;
+    publishedAt: string;
+    featured: string;
+    pinned: string;
+    seoOptions: string;
+    seoTitle: string;
+    seoDescription: string;
+    markdownMdx: string;
+    words: (count: number) => string;
+    readingTime: string;
+    markdownSupported: string;
+    journal: string;
+    unscheduled: string;
+    toolbar: Record<"h1" | "h2" | "paragraph" | "italic" | "quote" | "link" | "image" | "code", string>;
+  };
   drafts: {
     title: string;
     description: string;
@@ -165,6 +205,55 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       noArticlesTitle: "No articles yet",
       noArticlesDescription: "第一篇文章创建后，已发布内容和草稿都会出现在这里。",
     },
+    editor: {
+      newEditorialEntry: "新建编辑文章",
+      saved: "已保存",
+      saving: "保存中",
+      unsaved: "未保存",
+      minRead: (minutes) => `${minutes} 分钟阅读`,
+      preview: "预览",
+      saveDraft: "保存草稿",
+      publish: "发布",
+      unpublish: "取消发布",
+      documentSettings: "文档设置",
+      title: "标题",
+      subtitle: "副标题",
+      excerpt: "摘要",
+      slug: "链接别名",
+      category: "分类",
+      tags: "标签",
+      coverImage: "封面图",
+      status: "状态",
+      livePreview: "实时预览",
+      untitledEditorial: "未命名文章",
+      newStudioNote: "一篇正在创作中的工作室笔记。",
+      sourceLanguage: "源语言",
+      draft: "草稿",
+      published: "已发布",
+      scheduled: "定时发布",
+      publishedAt: "发布时间",
+      featured: "精选",
+      pinned: "置顶",
+      seoOptions: "SEO 设置",
+      seoTitle: "SEO 标题",
+      seoDescription: "SEO 描述",
+      markdownMdx: "Markdown / MDX",
+      words: (count) => `字数：${count}`,
+      readingTime: "阅读时间",
+      markdownSupported: "支持 Markdown / MDX",
+      journal: "日志",
+      unscheduled: "未定时",
+      toolbar: {
+        h1: "一级标题",
+        h2: "二级标题",
+        paragraph: "正文段落",
+        italic: "斜体",
+        quote: "引用",
+        link: "链接",
+        image: "图片",
+        code: "代码",
+      },
+    },
     drafts: {
       title: "草稿",
       description: "一个专门容纳未完成想法、草图与写作片段的空间。",
@@ -273,6 +362,55 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       noArticlesTitle: "No articles yet",
       noArticlesDescription: "建立第一篇文章後，已發布內容與草稿都會出現在這裡。",
     },
+    editor: {
+      newEditorialEntry: "新增編輯文章",
+      saved: "已儲存",
+      saving: "儲存中",
+      unsaved: "未儲存",
+      minRead: (minutes) => `${minutes} 分鐘閱讀`,
+      preview: "預覽",
+      saveDraft: "儲存草稿",
+      publish: "發布",
+      unpublish: "取消發布",
+      documentSettings: "文件設定",
+      title: "標題",
+      subtitle: "副標題",
+      excerpt: "摘要",
+      slug: "連結別名",
+      category: "分類",
+      tags: "標籤",
+      coverImage: "封面圖",
+      status: "狀態",
+      livePreview: "即時預覽",
+      untitledEditorial: "未命名文章",
+      newStudioNote: "一篇正在創作中的工作室筆記。",
+      sourceLanguage: "源語言",
+      draft: "草稿",
+      published: "已發布",
+      scheduled: "排程發布",
+      publishedAt: "發布時間",
+      featured: "精選",
+      pinned: "置頂",
+      seoOptions: "SEO 設定",
+      seoTitle: "SEO 標題",
+      seoDescription: "SEO 描述",
+      markdownMdx: "Markdown / MDX",
+      words: (count) => `字數：${count}`,
+      readingTime: "閱讀時間",
+      markdownSupported: "支援 Markdown / MDX",
+      journal: "日誌",
+      unscheduled: "未排程",
+      toolbar: {
+        h1: "一級標題",
+        h2: "二級標題",
+        paragraph: "正文段落",
+        italic: "斜體",
+        quote: "引用",
+        link: "連結",
+        image: "圖片",
+        code: "程式碼",
+      },
+    },
     drafts: {
       title: "草稿",
       description: "一個專門容納未完成想法、草圖與寫作片段的空間。",
@@ -380,6 +518,55 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       tableActions: "Actions",
       noArticlesTitle: "No articles yet",
       noArticlesDescription: "Published pieces and drafts will appear here once the first article is created.",
+    },
+    editor: {
+      newEditorialEntry: "New Editorial Entry",
+      saved: "Saved",
+      saving: "Saving",
+      unsaved: "Unsaved",
+      minRead: (minutes) => `${minutes} min read`,
+      preview: "Preview",
+      saveDraft: "Save Draft",
+      publish: "Publish",
+      unpublish: "Unpublish",
+      documentSettings: "Document Settings",
+      title: "Title",
+      subtitle: "Subtitle",
+      excerpt: "Excerpt",
+      slug: "Slug",
+      category: "Category",
+      tags: "Tags",
+      coverImage: "Cover Image",
+      status: "Status",
+      livePreview: "Live Preview",
+      untitledEditorial: "Untitled Editorial",
+      newStudioNote: "A new studio note in progress.",
+      sourceLanguage: "Source Language",
+      draft: "Draft",
+      published: "Published",
+      scheduled: "Scheduled",
+      publishedAt: "Published At",
+      featured: "Featured",
+      pinned: "Pinned",
+      seoOptions: "SEO Options",
+      seoTitle: "SEO Title",
+      seoDescription: "SEO Description",
+      markdownMdx: "Markdown / MDX",
+      words: (count) => `Words: ${count}`,
+      readingTime: "Reading time",
+      markdownSupported: "Markdown / MDX Supported",
+      journal: "Journal",
+      unscheduled: "Unscheduled",
+      toolbar: {
+        h1: "Heading 1",
+        h2: "Heading 2",
+        paragraph: "Paragraph",
+        italic: "Italic",
+        quote: "Quote",
+        link: "Link",
+        image: "Image",
+        code: "Code",
+      },
     },
     drafts: {
       title: "Drafts",
