@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import { parseMarkdownBlocks } from "../src/lib/editor.ts";
 
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), "utf8");
 const legacyKey = ["OPENAI", "API", "KEY"].join("_");
@@ -56,6 +57,21 @@ test("front-end fragments render weather with restrained metadata", () => {
   assert.match(card, /parseMarkdownBlocks/);
   assert.match(card, /labels\.weather/);
   assert.doesNotMatch(card, /\[fragment\.location,\s*fragment\.weather]/);
+});
+
+test("fragment body preserves CMS line breaks and shares one typography rule", () => {
+  const blocks = parseMarkdownBlocks("第一行\n第二行\n第三行", { preserveLineBreaks: true });
+  const card = read("../src/components/fragments/FragmentCard.tsx");
+  const editor = read("../src/components/admin/FragmentEditorScreen.tsx");
+  const presentation = read("../src/components/fragments/fragmentPresentation.ts");
+
+  assert.equal(blocks[0]?.type, "paragraph");
+  assert.equal(blocks[0]?.text, "第一行\n第二行\n第三行");
+  assert.match(card, /fragmentBodyClassName/);
+  assert.match(editor, /fragmentBodyClassName/);
+  assert.match(editor, /max-w-editorial/);
+  assert.match(presentation, /max-w-\[41\.5rem]/);
+  assert.doesNotMatch(card, /max-w-3xl/);
 });
 
 test("fragment suggestions use DeepSeek with a local fallback", () => {

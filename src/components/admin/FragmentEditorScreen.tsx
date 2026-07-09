@@ -8,6 +8,7 @@ import AdminButton from "@/components/admin/AdminButton";
 import AdminInput from "@/components/admin/AdminInput";
 import AdminTextarea from "@/components/admin/AdminTextarea";
 import FragmentCard from "@/components/fragments/FragmentCard";
+import { fragmentBodyClassName } from "@/components/fragments/fragmentPresentation";
 import {
   fragmentDeviceSuggestions,
   fragmentMoodSuggestions,
@@ -457,14 +458,14 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
 
   if (fragmentId && isReady && !existing) {
     return (
-      <main className="mx-auto max-w-6xl px-margin-mobile pb-section-gap md:px-margin-desktop">
+      <main className="mx-auto max-w-editorial px-margin-mobile pb-section-gap md:px-margin-desktop">
         <p className="text-body-lg text-secondary">{copy.notFound}</p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-margin-mobile pb-section-gap md:px-margin-desktop">
+    <main className="mx-auto max-w-editorial px-margin-mobile pb-section-gap md:px-margin-desktop">
       {toast ? (
         <div className="fixed right-6 top-24 z-50 border border-outline-variant/20 bg-background px-4 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-on-background">
           {toast}
@@ -542,6 +543,7 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
               ) : null}
             </div>
             <AdminTextarea
+              className={fragmentBodyClassName}
               rows={8}
               value={draft.contentJson[activeLocale] ?? ""}
               onChange={(event) => updateLocalized("content", activeLocale, event.target.value)}

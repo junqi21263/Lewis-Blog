@@ -1,6 +1,7 @@
 "use client";
 
 import EditorialImage from "@/components/media/EditorialImage";
+import { fragmentBodyClassName } from "@/components/fragments/fragmentPresentation";
 import { parseMarkdownBlocks } from "@/lib/editor";
 
 export type FragmentCardData = {
@@ -37,10 +38,10 @@ function formatDate(value: string, locale: string) {
 }
 
 function FragmentContent({ content }: { content: string }) {
-  const blocks = parseMarkdownBlocks(content);
+  const blocks = parseMarkdownBlocks(content, { preserveLineBreaks: true });
 
   return (
-    <div className="max-w-3xl space-y-5 break-words text-[17px] leading-[1.8] text-on-background md:text-[19px]">
+    <div className={`${fragmentBodyClassName} space-y-5`}>
       {blocks.map((block, index) => {
         if (block.type === "list") {
           const List = block.ordered ? "ol" : "ul";
@@ -60,7 +61,7 @@ function FragmentContent({ content }: { content: string }) {
           return <h3 key={`${block.type}-${index}`} className="font-serif text-[1.35em] leading-tight">{block.text}</h3>;
         }
         if (block.type === "paragraph") {
-          return <p key={`${block.type}-${index}`} className="whitespace-pre-wrap">{block.text}</p>;
+          return <p key={`${block.type}-${index}`}>{block.text}</p>;
         }
         if (block.type === "code") {
           return <pre key={`${block.type}-${index}`} className="overflow-x-auto border border-outline-variant/10 p-4 font-mono text-sm"><code>{block.code}</code></pre>;

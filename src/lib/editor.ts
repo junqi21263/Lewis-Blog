@@ -28,6 +28,10 @@ export type ArticleAnalysis = {
   readingTime: string;
 };
 
+type ParseMarkdownOptions = {
+  preserveLineBreaks?: boolean;
+};
+
 export function slugifyTitle(title: string) {
   return title
     .toLowerCase()
@@ -85,7 +89,7 @@ export function extractFootnotes(markdown: string): Footnote[] {
   return footnotes;
 }
 
-export function parseMarkdownBlocks(markdown: string): MarkdownBlock[] {
+export function parseMarkdownBlocks(markdown: string, options: ParseMarkdownOptions = {}): MarkdownBlock[] {
   const lines = markdown.replace(/\r\n/g, "\n").split("\n");
   const blocks: MarkdownBlock[] = [];
   const headingIds = new Map<string, number>();
@@ -192,7 +196,10 @@ export function parseMarkdownBlocks(markdown: string): MarkdownBlock[] {
       paragraphLines.push(lines[index]);
       index += 1;
     }
-    blocks.push({ type: "paragraph", text: paragraphLines.join(" ") });
+    blocks.push({
+      type: "paragraph",
+      text: paragraphLines.join(options.preserveLineBreaks ? "\n" : " "),
+    });
   }
 
   return blocks;
