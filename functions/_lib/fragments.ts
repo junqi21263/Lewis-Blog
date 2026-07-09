@@ -126,7 +126,7 @@ async function translateFragmentToEnglish(env: TranslationEnv, source: FragmentS
       Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-v4-flash",
+      model: "deepseek-chat",
       response_format: { type: "json_object" },
       messages: [
         {

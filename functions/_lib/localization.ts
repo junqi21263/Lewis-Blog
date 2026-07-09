@@ -351,7 +351,7 @@ async function translateToEnglish(env: DeepSeekEnv, source: PostSourceFields) {
       Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-v4-flash",
+      model: "deepseek-chat",
       response_format: { type: "json_object" },
       messages: [
         {
@@ -480,7 +480,7 @@ async function translateGenericEnglish<T extends Record<string, unknown>>(env: D
       Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-v4-flash",
+      model: "deepseek-chat",
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },

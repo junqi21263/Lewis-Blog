@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminButton from "@/components/admin/AdminButton";
 import AdminInput from "@/components/admin/AdminInput";
 import AdminTextarea from "@/components/admin/AdminTextarea";
+import FragmentCard from "@/components/fragments/FragmentCard";
 import {
   fragmentDeviceSuggestions,
   fragmentMoodSuggestions,
@@ -69,6 +70,7 @@ function copyForLocale(locale: Locale) {
       refreshWeather: "刷新天气",
       locationHint: "根据当前网络位置自动生成，可手动修改。",
       translating: "正在生成英文预览…",
+      preview: "实时预览",
       status: "状态",
       isPublic: "公开显示",
       images: "图片",
@@ -104,6 +106,7 @@ function copyForLocale(locale: Locale) {
       refreshWeather: "刷新天氣",
       locationHint: "根據目前網路位置自動生成，可手動修改。",
       translating: "正在生成英文預覽…",
+      preview: "即時預覽",
       status: "狀態",
       isPublic: "公開顯示",
       images: "圖片",
@@ -138,6 +141,7 @@ function copyForLocale(locale: Locale) {
     refreshWeather: "Refresh weather",
     locationHint: "Generated from the current network location and can be edited.",
     translating: "Generating English preview…",
+    preview: "Live Preview",
     status: "Status",
     isPublic: "Publicly visible",
     images: "Images",
@@ -182,18 +186,47 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
   const [activeLocale, setActiveLocale] = useState<Locale>("zh-CN");
   const [toast, setToast] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [suggestionWarnings, setSuggestionWarnings] = useState<string[]>([]);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+  const [loadingSuggestion, setLoadingSuggestion] = useState<"camera" | "mood" | null>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const locationRequestedRef = useRef(false);
   const translationRequestRef = useRef(0);
+  const suggestionsRequestedRef = useRef(false);
   const autoLocationRef = useRef<{ source: string; english: string } | null>(null);
   const sourceContent = draft.contentJson["zh-CN"] ?? "";
   const sourceLocation = draft.locationJson["zh-CN"] ?? "";
   const weatherLookupLocation = draft.locationJson["en-US"]?.trim() || sourceLocation;
   const englishContentManual = Boolean(draft.translationLocks["en-US"]?.content);
   const englishLocationManual = Boolean(draft.translationLocks["en-US"]?.location);
+  const refreshSuggestion = useCallback(async (type: "camera" | "mood") => {
+    setLoadingSuggestion(type);
+    const currentValue = type === "camera" ? draft.camera : draft.mood;
+    try {
+      const response = await fetch("/api/admin/fragments/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, current: currentValue }),
+      });
+      if (!response.ok) throw new Error("Suggestion request failed.");
+      const payload = await response.json() as { data?: { value?: string; warning?: string } };
+      const value = payload.data?.value?.trim();
+      if (value) setDraft((current) => ({ ...current, [type]: value }));
+      if (payload.data?.warning) {
+        setSuggestionWarnings((current) => Array.from(new Set([...current, payload.data!.warning!])));
+      }
+    } catch {
+      const fallback = type === "camera"
+        ? randomSuggestion(fragmentDeviceSuggestions, currentValue)
+        : randomSuggestion(fragmentMoodSuggestions, currentValue);
+      setDraft((current) => ({ ...current, [type]: fallback }));
+      setSuggestionWarnings((current) => Array.from(new Set([...current, "AI 建议暂不可用，已使用本地随机内容。"])));
+    } finally {
+      setLoadingSuggestion(null);
+    }
+  }, [draft.camera, draft.mood]);
   const refreshWeather = useCallback(async (location = weatherLookupLocation) => {
     if (!location.trim()) return;
     setIsLoadingWeather(true);
@@ -251,6 +284,12 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
       .catch(() => setWarnings((current) => [...current, "当前位置暂不可用，可手动填写地点。"]))
       .finally(() => setIsLocating(false));
   }, [fragmentId]);
+
+  useEffect(() => {
+    if (fragmentId || suggestionsRequestedRef.current) return;
+    suggestionsRequestedRef.current = true;
+    void Promise.all([refreshSuggestion("camera"), refreshSuggestion("mood")]);
+  }, [fragmentId, refreshSuggestion]);
 
   useEffect(() => {
     if (!sourceContent.trim() && !sourceLocation.trim()) return;
@@ -459,11 +498,11 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
         </div>
       </header>
 
-      {warnings.length > 0 ? (
+      {[...warnings, ...suggestionWarnings].length > 0 ? (
         <div className="mb-6 border border-secondary/30 bg-secondary/10 px-4 py-3">
           <div className="label-mono mb-2">{copy.warnings}</div>
           <div className="space-y-2 text-body-sm text-secondary">
-            {warnings.map((warning, index) => (
+            {[...warnings, ...suggestionWarnings].map((warning, index) => (
               <p key={`${warning}-${index}`}>{warning}</p>
             ))}
           </div>
@@ -604,9 +643,10 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
               aria-label={`${copy.refresh} ${copy.camera}`}
               className="grid size-11 place-items-center border border-outline-variant/20 text-on-surface-variant transition hover:border-on-surface hover:text-on-surface"
               type="button"
-              onClick={() => updateDraft("camera", randomSuggestion(fragmentDeviceSuggestions, draft.camera))}
+              disabled={loadingSuggestion === "camera"}
+              onClick={() => void refreshSuggestion("camera")}
             >
-              <RefreshCw aria-hidden size={15} />
+              <RefreshCw aria-hidden className={loadingSuggestion === "camera" ? "animate-spin" : ""} size={15} />
             </button>
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
@@ -615,9 +655,10 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
               aria-label={`${copy.refresh} ${copy.mood}`}
               className="grid size-11 place-items-center border border-outline-variant/20 text-on-surface-variant transition hover:border-on-surface hover:text-on-surface"
               type="button"
-              onClick={() => updateDraft("mood", randomSuggestion(fragmentMoodSuggestions, draft.mood))}
+              disabled={loadingSuggestion === "mood"}
+              onClick={() => void refreshSuggestion("mood")}
             >
-              <RefreshCw aria-hidden size={15} />
+              <RefreshCw aria-hidden className={loadingSuggestion === "mood" ? "animate-spin" : ""} size={15} />
             </button>
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
@@ -669,6 +710,33 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
             <div>{copy.manualHint}</div>
           </div>
         </aside>
+      </section>
+
+      <section className="mt-14">
+        <div className="label-mono mb-5">{copy.preview}</div>
+        <FragmentCard
+          fragment={{
+            id: draft.id,
+            content: draft.contentJson[activeLocale] ?? draft.contentJson["zh-CN"] ?? "",
+            location: draft.locationJson[activeLocale] ?? draft.locationJson["zh-CN"] ?? "",
+            weather: draft.weatherJson[activeLocale] ?? draft.weatherJson["zh-CN"] ?? "",
+            camera: draft.camera,
+            mood: draft.mood,
+            date: draft.publishedAt || draft.createdAt,
+            images: draft.images.map((image) => ({
+              url: image.url,
+              alt: image.altJson[activeLocale] ?? image.altJson["zh-CN"] ?? "",
+            })),
+          }}
+          labels={{
+            location: copy.location,
+            weather: copy.weather,
+            camera: copy.camera,
+            mood: copy.mood,
+          }}
+          locale={activeLocale}
+          preview
+        />
       </section>
     </main>
   );

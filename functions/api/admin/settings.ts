@@ -185,7 +185,7 @@ async function translateFooterWithDeepSeek(env: TranslationEnv, source: FooterFi
       Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-v4-flash",
+      model: "deepseek-chat",
       response_format: { type: "json_object" },
       messages: [
         {
@@ -233,7 +233,7 @@ async function translateHomepageWithDeepSeek(env: TranslationEnv, source: Homepa
       Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-v4-flash",
+      model: "deepseek-chat",
       response_format: { type: "json_object" },
       messages: [
         {
@@ -281,7 +281,7 @@ async function translatePageCopyWithDeepSeek(env: TranslationEnv, source: Record
       Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-v4-flash",
+      model: "deepseek-chat",
       response_format: { type: "json_object" },
       messages: [
         {

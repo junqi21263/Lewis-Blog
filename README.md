@@ -47,9 +47,7 @@ public/          静态资源与站点图标
 
 ```bash
 DEEPSEEK_API_KEY=
-OPENAI_API_KEY=
 ADMIN_EMAILS=
-FEATURE_FRAGMENT_AI_SUGGESTIONS=false
 UMAMI_WEBSITE_ID=
 UMAMI_SCRIPT_URL=
 GISCUS_REPO=
@@ -58,7 +56,7 @@ GISCUS_CATEGORY=
 GISCUS_CATEGORY_ID=
 ```
 
-当前 CMS 的英文自动翻译使用 `DEEPSEEK_API_KEY`；`OPENAI_API_KEY` 预留给需要 OpenAI 兼容服务的部署。
+CMS 英文翻译与 Fragments 设备、心情建议统一使用 `DEEPSEEK_API_KEY`。未配置时会保留源语言或使用本地建议，不阻塞保存与发布。
 
 ### Local Development
 

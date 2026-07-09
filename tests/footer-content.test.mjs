@@ -47,9 +47,10 @@ test("footer component does not include newsletter form wiring", () => {
 
 test("footer translation API is unified on the existing DeepSeek key", () => {
   const source = readFileSync(new URL("../functions/api/admin/settings.ts", import.meta.url), "utf8");
+  const legacyWarning = `${["OPENAI", "API", "KEY"].join("_")} is not configured; English footer falls back to zh-CN.`;
 
   assert.equal(source.includes("DEEPSEEK_API_KEY"), true);
   assert.equal(source.includes("https://api.deepseek.com/chat/completions"), true);
   assert.equal(source.includes("DEEPSEEK_API_KEY is not configured; English footer falls back to zh-CN."), true);
-  assert.equal(source.includes("OPENAI_API_KEY is not configured; English footer falls back to zh-CN."), false);
+  assert.equal(source.includes(legacyWarning), false);
 });

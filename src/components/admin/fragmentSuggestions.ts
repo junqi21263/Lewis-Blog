@@ -1,5 +1,3 @@
-export { FEATURE_FRAGMENT_AI_SUGGESTIONS } from "@/config/features";
-
 export const fragmentDeviceSuggestions = [
   "牛马专用 MacBook 🐮",
   "牛马专用相机 📷",

@@ -64,6 +64,17 @@ The project is configured in `wrangler.jsonc`, but verify the deployed Pages pro
 - `AI` -> Workers AI
 - `VECTOR_INDEX` -> Vectorize index `nordic_blog_vectors`
 
+## Required Pages Secrets
+
+Configure the following encrypted secret for both Preview and Production when
+AI translation and Fragment suggestions are required:
+
+- `DEEPSEEK_API_KEY` -> DeepSeek API key used with `https://api.deepseek.com`
+  and the `deepseek-chat` model
+
+The CMS remains usable without this secret. English copy falls back to the
+source language and Fragment suggestions use the local phrase library.
+
 ## Admin Access
 
 Cloudflare Access must protect:
