@@ -3,6 +3,7 @@
 import AiArchivePanel from "@/components/AiArchivePanel";
 import DynamicMetadata from "@/components/DynamicMetadata";
 import JournalArchive from "@/components/JournalArchive";
+import EditorialPageSkeleton from "@/components/loading/EditorialPageSkeleton";
 import { resolvePageCopy } from "@/components/pages/pageCopy";
 import { FEATURE_AI_ARCHIVE } from "@/config/features";
 import { getVisibleJournalPosts, postToArticle } from "@/data/cms";
@@ -13,7 +14,7 @@ import { useI18n } from "@/i18n/useI18n";
 
 export default function JournalClient() {
   const { locale } = useI18n();
-  const { data } = useCmsData();
+  const { data, isReady } = useCmsData();
   const copy = resolvePageCopy(data.siteSettings.pageCopyJson, "journal", locale);
   const canonicalUrl = `${siteUrl}${withLocalePrefix("/journal", locale)}`;
   const archiveEntries = getVisibleJournalPosts(data).map((post) => {
@@ -32,6 +33,10 @@ export default function JournalClient() {
       sortDate: post.publishedAt || post.createdAt,
     };
   });
+
+  if (!isReady) {
+    return <EditorialPageSkeleton />;
+  }
 
   return (
     <div className="editorial-shell pb-24 md:pb-section-gap" data-pagefind-body>

@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import ArticleCard from "@/components/ArticleCard";
 import BlogCard from "@/components/BlogCard";
 import FeaturedImagesGrid from "@/components/FeaturedImagesGrid";
 import FilmCard from "@/components/FilmCard";
+import EditorialPageSkeleton from "@/components/loading/EditorialPageSkeleton";
 import EditorialImage from "@/components/media/EditorialImage";
 import { getVisibleFragments, getVisibleJournalPosts, localizedFragment, postToArticle } from "@/data/cms";
 import { resolveHomepageContent } from "@/components/home/homepageContent";
@@ -13,10 +13,6 @@ import type { Film } from "@/data/site";
 import { useCmsData } from "@/hooks/useCmsData";
 import { localeToSegment, withLocalePrefix } from "@/i18n/config";
 import { useI18n } from "@/i18n/useI18n";
-
-function SkeletonBand() {
-  return <div className="h-72 animate-pulse border border-outline-variant/10 bg-surface-container-low" />;
-}
 
 export default function HomeClient() {
   const { locale, dictionary } = useI18n();
@@ -55,11 +51,7 @@ export default function HomeClient() {
     }));
 
   if (!isReady) {
-    return (
-      <div className="editorial-shell pb-28 md:pb-section-gap">
-        <SkeletonBand />
-      </div>
-    );
+    return <EditorialPageSkeleton home />;
   }
 
   if (error || !featuredArticle) {
@@ -212,19 +204,6 @@ export default function HomeClient() {
         </section>
       ) : null}
 
-      <section className="editorial-shell mb-20 md:mb-section-gap">
-        <div className="grid gap-gutter border-t border-outline-variant/10 pt-8 md:grid-cols-12">
-          <div className="md:col-span-4">
-            <div className="label-mono mb-4">{homepage.journalEyebrow}</div>
-            <h2 className="font-serif text-[38px] leading-tight text-on-background md:text-headline-lg">{homepage.journalHeadline}</h2>
-          </div>
-          <div className="md:col-span-8">
-            {publishedArticles.map((article) => (
-              <ArticleCard key={article.slug} article={article} compact href={`/${localeToSegment(locale)}/journal/${article.slug}`} />
-            ))}
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

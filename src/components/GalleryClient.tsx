@@ -2,6 +2,7 @@
 
 import FeaturedImagesGrid from "@/components/FeaturedImagesGrid";
 import DynamicMetadata from "@/components/DynamicMetadata";
+import EditorialPageSkeleton from "@/components/loading/EditorialPageSkeleton";
 import { resolvePageCopy } from "@/components/pages/pageCopy";
 import { siteUrl } from "@/data/site";
 import { useCmsData } from "@/hooks/useCmsData";
@@ -10,7 +11,7 @@ import { useI18n } from "@/i18n/useI18n";
 
 export default function GalleryClient() {
   const { locale } = useI18n();
-  const { data } = useCmsData();
+  const { data, isReady } = useCmsData();
   const copy = resolvePageCopy(data.siteSettings.pageCopyJson, "gallery", locale);
   const canonicalUrl = `${siteUrl}${withLocalePrefix("/gallery", locale)}`;
   const galleryImages = data.galleryImages.length > 0
@@ -29,6 +30,10 @@ export default function GalleryClient() {
           width: null,
           height: null,
         }));
+
+  if (!isReady) {
+    return <EditorialPageSkeleton />;
+  }
 
   return (
     <div className="editorial-shell pb-24 md:pb-section-gap" data-pagefind-body>

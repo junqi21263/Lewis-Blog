@@ -2,6 +2,7 @@
 
 import DynamicMetadata from "@/components/DynamicMetadata";
 import FragmentCard from "@/components/fragments/FragmentCard";
+import EditorialPageSkeleton from "@/components/loading/EditorialPageSkeleton";
 import { resolvePageCopy } from "@/components/pages/pageCopy";
 import { getVisibleFragments, localizedFragment } from "@/data/cms";
 import { siteUrl } from "@/data/site";
@@ -24,7 +25,7 @@ export default function FragmentsClient() {
   const fragments = getVisibleFragments(data).map((fragment) => localizedFragment(fragment, locale));
 
   if (!isReady) {
-    return <div className="editorial-shell pb-28 md:pb-section-gap" />;
+    return <EditorialPageSkeleton />;
   }
 
   return (

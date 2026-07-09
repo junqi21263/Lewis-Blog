@@ -1,5 +1,6 @@
 import { jsonResponse, methodNotAllowed, withErrorHandling } from "../_lib/api";
 import { localeFromRequest, localizedValue, prefixedPath } from "../_lib/localization";
+import { resolveEditorialImageLabel, untitledImageLabel } from "../../src/components/media/editorialImageLabel";
 
 type PhotoRow = {
   id: string;
@@ -93,18 +94,22 @@ export const onRequestGet: PagesFunction<Env> = async (context) =>
         .all<PostImageRow>(),
     ]);
 
-    const galleryImages: FeaturedImage[] = photos.results.map((photo) => ({
-      id: `gallery-${photo.id}`,
-      imageUrl: photo.image_url,
-      alt: photo.alt_text || photo.description || photo.title,
-      caption: photo.description || photo.alt_text || photo.title,
-      sourceType: "gallery",
-      sourceId: photo.id,
-      sourceTitle: photo.title,
-      sourceUrl: prefixedPath(locale, "/gallery"),
-      width: null,
-      height: null,
-    }));
+    const galleryImages: FeaturedImage[] = photos.results.map((photo) => {
+      const fallback = untitledImageLabel(locale);
+      const sourceTitle = resolveEditorialImageLabel(photo.title, fallback);
+      return {
+        id: `gallery-${photo.id}`,
+        imageUrl: photo.image_url,
+        alt: resolveEditorialImageLabel(photo.alt_text || photo.description || photo.title, sourceTitle),
+        caption: resolveEditorialImageLabel(photo.description || photo.alt_text || photo.title, sourceTitle),
+        sourceType: "gallery",
+        sourceId: photo.id,
+        sourceTitle,
+        sourceUrl: prefixedPath(locale, "/gallery"),
+        width: null,
+        height: null,
+      };
+    });
 
     const articleImages: FeaturedImage[] = posts.results.flatMap((post) => {
       const title = localizedValue(post.title, post.title_json, locale) || post.title;
@@ -112,8 +117,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) =>
       const markdownImages = parseArticleImages(content).map((image, index) => ({
         id: `article-${post.id}-${index}`,
         imageUrl: image.url,
-        alt: image.alt || title,
-        caption: image.alt || title,
+        alt: resolveEditorialImageLabel(image.alt, title),
+        caption: resolveEditorialImageLabel(image.alt, title),
         width: null,
         height: null,
       }));

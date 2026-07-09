@@ -15,7 +15,7 @@ export default function AdminDashboardPage() {
   const { dictionary, locale } = useAdminI18n();
   const draftCount = data.posts.filter((post) => post.status === "draft").length;
   const publishedCount = data.posts.filter((post) => post.status === "published").length;
-  const hasContent = data.posts.length > 0 || data.photos.length > 0 || data.videos.length > 0;
+  const hasContent = data.posts.length > 0 || data.galleryImages.length > 0 || data.videos.length > 0;
 
   return (
     <main className="mx-auto max-w-7xl px-margin-mobile pb-section-gap md:px-margin-desktop">
@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
           </AdminCard>
           <AdminCard className="flex min-h-[220px] flex-col justify-between p-6 md:p-8">
             <span className="label-mono">{dictionary.dashboard.galleryFilms}</span>
-            <span className="font-serif text-display-lg leading-none text-on-surface md:text-display-xl">{data.photos.length + data.videos.length}</span>
+            <span className="font-serif text-display-lg leading-none text-on-surface md:text-display-xl">{data.galleryImages.length + data.videos.length}</span>
           </AdminCard>
         </section>
       )}

@@ -6,6 +6,7 @@ import AdminButton from "@/components/admin/AdminButton";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminInput from "@/components/admin/AdminInput";
 import AdminTextarea from "@/components/admin/AdminTextarea";
+import { resolveEditorialImageLabel } from "@/components/media/editorialImageLabel";
 import StatusBadge from "@/components/admin/StatusBadge";
 import type { Photo } from "@/data/cms";
 import { useCmsData } from "@/hooks/useCmsData";
@@ -162,9 +163,9 @@ export default function AdminGalleryPage() {
         const nextPhoto = {
           ...photo,
           ...exif,
-          title: file.name.replace(/\.[^.]+$/, "") || photo.title,
+          title: resolveEditorialImageLabel(file.name, localizedUntitledImage),
           imageUrl: uploaded.url,
-          altText: file.name.replace(/\.[^.]+$/, "") || photo.title,
+          altText: resolveEditorialImageLabel(file.name, localizedUntitledImage),
         };
         lastCreated = await addPhoto(nextPhoto);
       }

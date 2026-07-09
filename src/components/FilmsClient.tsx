@@ -2,6 +2,7 @@
 
 import FilmCard from "@/components/FilmCard";
 import DynamicMetadata from "@/components/DynamicMetadata";
+import EditorialPageSkeleton from "@/components/loading/EditorialPageSkeleton";
 import { resolvePageCopy } from "@/components/pages/pageCopy";
 import { siteUrl, type Film } from "@/data/site";
 import { useCmsData } from "@/hooks/useCmsData";
@@ -10,7 +11,7 @@ import { useI18n } from "@/i18n/useI18n";
 
 export default function FilmsClient() {
   const { locale } = useI18n();
-  const { data } = useCmsData();
+  const { data, isReady } = useCmsData();
   const copy = resolvePageCopy(data.siteSettings.pageCopyJson, "films", locale);
   const canonicalUrl = `${siteUrl}${withLocalePrefix("/films", locale)}`;
   const featuredLabel = locale === "zh-CN" ? "精选" : locale === "zh-TW" ? "精選" : "Featured";
@@ -30,6 +31,10 @@ export default function FilmsClient() {
       },
       videoSrc: video.videoUrl,
     }));
+
+  if (!isReady) {
+    return <EditorialPageSkeleton />;
+  }
 
   return (
     <div className="editorial-shell pb-24 md:pb-section-gap" data-pagefind-body>

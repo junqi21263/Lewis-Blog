@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import DynamicMetadata from "@/components/DynamicMetadata";
 import EditorialImage from "@/components/media/EditorialImage";
+import EditorialPageSkeleton from "@/components/loading/EditorialPageSkeleton";
 import { resolvePageCopy } from "@/components/pages/pageCopy";
 import StructuredData from "@/components/StructuredData";
 import { type GearCategory } from "@/data/cms";
@@ -50,6 +51,10 @@ export default function GearClient() {
 
   const description = copy.description;
 
+  if (!isReady) {
+    return <EditorialPageSkeleton />;
+  }
+
   return (
     <div className="editorial-shell pb-24 md:pb-section-gap" data-pagefind-body>
       <DynamicMetadata canonicalUrl={canonicalUrl} description={description} title={copy.title} />
@@ -94,7 +99,7 @@ export default function GearClient() {
         </div>
       ) : null}
 
-      {!isReady || visibleItems.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <section className="border-t border-outline-variant/10 py-14">
           <h2 className="font-serif text-headline-lg text-on-background">
             {copy.emptyTitle}
