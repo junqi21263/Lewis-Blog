@@ -5,7 +5,7 @@ const analyticsDomains = [new URL(siteUrl).hostname];
 export const creatorConfig = {
   newsletter: {
     provider: "Buttondown",
-    actionUrl: "https://buttondown.email/noah-studio",
+    actionUrl: "",
   },
   giscus: {
     repo: "junqi21263/Lewis-Blog",
@@ -49,6 +49,6 @@ export function organizationJsonLd() {
     "@type": "Organization",
     name: siteName,
     url: siteUrl,
-    logo: `${siteUrl}/images/open-road.jpg`,
+    logo: `${siteUrl}/apple-touch-icon.png`,
   };
 }

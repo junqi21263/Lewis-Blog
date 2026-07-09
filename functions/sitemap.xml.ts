@@ -4,6 +4,10 @@ type SitemapPost = {
   updated_at: string | null;
 };
 
+type SitemapTaxonomy = {
+  slug: string;
+};
+
 const siteUrl = "https://journal.lewislee.online";
 const localeSegments = [
   { locale: "zh-CN", segment: "zh" },
@@ -37,17 +41,27 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     )
     .all<SitemapPost>();
   const staticRoutes = localeSegments.flatMap(({ segment }) =>
-    ["/", "/journal", "/gallery", "/gear", "/films", "/about"].map((route) =>
+    ["/", "/journal", "/fragments", "/gallery", "/gear", "/films", "/about"].map((route) =>
       urlEntry(route, segment, new Date().toISOString(), route === "/" ? "1.0" : "0.8"),
     ),
   );
   const postRoutes = localeSegments.flatMap(({ segment }) =>
     result.results.map((post) => urlEntry(`/journal/${post.slug}`, segment, post.updated_at || post.published_at || new Date().toISOString(), "0.7")),
   );
+  const [categories, tags] = await Promise.all([
+    context.env.DB.prepare("SELECT slug FROM categories ORDER BY sort_order ASC, name ASC").all<SitemapTaxonomy>(),
+    context.env.DB.prepare("SELECT slug FROM tags ORDER BY name ASC").all<SitemapTaxonomy>(),
+  ]);
+  const categoryRoutes = localeSegments.flatMap(({ segment }) =>
+    categories.results.map((category) => urlEntry(`/category/${category.slug}`, segment, new Date().toISOString(), "0.6")),
+  );
+  const tagRoutes = localeSegments.flatMap(({ segment }) =>
+    tags.results.map((tag) => urlEntry(`/tag/${tag.slug}`, segment, new Date().toISOString(), "0.5")),
+  );
 
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${[...staticRoutes, ...postRoutes].join("\n")}
+${[...staticRoutes, ...postRoutes, ...categoryRoutes, ...tagRoutes].join("\n")}
 </urlset>`, {
     headers: {
       "Content-Type": "application/xml; charset=utf-8",

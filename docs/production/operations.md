@@ -61,14 +61,13 @@ Cloudflare Dashboard:
 5. Confirm protected paths:
    - `/admin/*`
    - `/api/admin/*`
-6. Confirm policy includes only:
-   - `junqi21263@gmail.com`
+6. Confirm policy includes only the owner email.
 
 Expected screen:
 
 - Application type is `Self-hosted`.
 - Policy action is `Allow`.
-- Include rule is `Emails -> junqi21263@gmail.com`.
+- Include rule is `Emails -> <owner-email>`.
 
 ## Incident Checklist
 
@@ -79,4 +78,3 @@ Expected screen:
 5. If data is wrong, restore the latest D1 backup.
 6. If uploads fail, verify `ASSETS_BUCKET` binding and R2 bucket existence.
 7. If AI search fails, verify `AI` and `VECTOR_INDEX` bindings; lexical fallback should still return results.
-

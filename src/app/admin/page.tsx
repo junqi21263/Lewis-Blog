@@ -8,10 +8,11 @@ import StatusBadge from "@/components/admin/StatusBadge";
 import { getCategoryById } from "@/data/cms";
 import { useCmsData } from "@/hooks/useCmsData";
 import { useAdminI18n } from "@/i18n/admin";
+import { formatAdminDate } from "@/lib/adminDate";
 
 export default function AdminDashboardPage() {
   const { data } = useCmsData();
-  const { dictionary } = useAdminI18n();
+  const { dictionary, locale } = useAdminI18n();
   const draftCount = data.posts.filter((post) => post.status === "draft").length;
   const publishedCount = data.posts.filter((post) => post.status === "published").length;
   const hasContent = data.posts.length > 0 || data.photos.length > 0 || data.videos.length > 0;
@@ -81,7 +82,7 @@ export default function AdminDashboardPage() {
         </section>
       )}
 
-      <section className="grid gap-12 lg:grid-cols-12">
+      <section className="grid gap-12 lg:grid-cols-12 lg:items-stretch">
         <div className="lg:col-span-8">
           <div className="mb-8 flex items-end justify-between border-b border-outline-variant/20 pb-4">
             <h2 className="font-serif text-headline-md text-on-surface">{dictionary.dashboard.recentActivity}</h2>
@@ -92,6 +93,7 @@ export default function AdminDashboardPage() {
           <div className="space-y-4">
             {data.posts.slice(0, 5).map((post) => {
               const category = getCategoryById(data, post.categoryId);
+              const displayDate = formatAdminDate(post.publishedAt || post.updatedAt, locale);
               return (
                 <Link key={post.id} href={`/admin/posts/edit?id=${encodeURIComponent(post.id)}`}>
                   <AdminCard className="group flex flex-col justify-between gap-4 p-6 hover:border-outline-variant/30 sm:flex-row sm:items-center">
@@ -102,7 +104,7 @@ export default function AdminDashboardPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-5">
-                      <p className="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant/70">{post.updatedAt}</p>
+                      <p className="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant/70">{displayDate}</p>
                       <StatusBadge status={post.status} />
                     </div>
                   </AdminCard>
@@ -120,7 +122,7 @@ export default function AdminDashboardPage() {
         </div>
 
         <aside className="lg:col-span-4 lg:pt-20">
-          <AdminCard className="flex h-full flex-col bg-surface-container p-8">
+          <AdminCard className="flex h-full min-h-[232px] flex-col bg-surface-container p-8">
             <h2 className="mb-8 font-serif text-headline-md text-on-surface">{dictionary.dashboard.actions}</h2>
             <div className="flex flex-1 flex-col gap-4">
               <Link href="/admin/posts/new">

@@ -9,7 +9,16 @@ type AccessJwtPayload = {
 
 const postStatuses = ["draft", "published", "scheduled", "archived"] as const;
 const videoPlatforms = ["YouTube", "Bilibili", "Vimeo", "Local URL"] as const;
-const adminEmails = new Set(["junqi21263@gmail.com"]);
+
+function configuredAdminEmails(env: Env) {
+  const value = (env as Env & { ADMIN_EMAILS?: string }).ADMIN_EMAILS ?? "";
+  return new Set(
+    value
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
 
 export function jsonResponse(data: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers);
@@ -106,7 +115,8 @@ export function requireAccess(context: EventContext<Env, string, unknown>) {
     return errorResponse("Cloudflare Access did not provide an email identity for this request.", 403);
   }
 
-  if (!adminEmails.has(identity.email)) {
+  const adminEmails = configuredAdminEmails(context.env);
+  if (adminEmails.size > 0 && !adminEmails.has(identity.email)) {
     return errorResponse(`Signed in as ${identity.email}, but this account is not allowed to manage the CMS.`, 403);
   }
 

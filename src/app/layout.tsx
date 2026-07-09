@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
+import HtmlRuntimeSync from "@/components/HtmlRuntimeSync";
 import SiteChrome from "@/components/SiteChrome";
 import StructuredData from "@/components/StructuredData";
 import { organizationJsonLd, websiteJsonLd } from "@/data/creator";
 import { googleSiteVerification, siteDescription, siteName, siteUrl } from "@/data/site";
+import { defaultLocale } from "@/i18n/config";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -38,12 +40,12 @@ export const metadata: Metadata = {
   applicationName: siteName,
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
-      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { url: "/api/site-icon", sizes: "any" },
+      { url: "/api/site-icon?size=32", sizes: "32x32" },
+      { url: "/api/site-icon?size=16", sizes: "16x16" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/api/site-icon?size=180", sizes: "180x180" }],
+    shortcut: ["/api/site-icon"],
   },
   verification: {
     google: googleSiteVerification,
@@ -81,8 +83,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className="dark" lang="en" suppressHydrationWarning>
+    <html className="dark" lang={defaultLocale} suppressHydrationWarning>
       <body className={`${inter.variable} ${cormorant.variable} ${ibmPlexMono.variable} antialiased`}>
+        <HtmlRuntimeSync />
         <StructuredData data={websiteJsonLd()} />
         <StructuredData data={organizationJsonLd()} />
         <SiteChrome>{children}</SiteChrome>

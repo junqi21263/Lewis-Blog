@@ -46,6 +46,22 @@ async function listPosts(db: D1Database) {
   return result.results.map(serializePost);
 }
 
+async function getPostById(db: D1Database, id: string) {
+  const row = await db
+    .prepare(
+      `SELECT posts.*, GROUP_CONCAT(tags.name) AS tag_names
+       FROM posts
+       LEFT JOIN post_tags ON post_tags.post_id = posts.id
+       LEFT JOIN tags ON tags.id = post_tags.tag_id
+       WHERE posts.id = ?
+       GROUP BY posts.id`,
+    )
+    .bind(id)
+    .first<PostRow>();
+
+  return row ? serializePost(row) : null;
+}
+
 export const onRequestGet: PagesFunction<Env> = async (context) =>
   await withErrorHandling(async () => {
     const blocked = requireAccess(context);
@@ -89,9 +105,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) =>
         .prepare(
           `INSERT INTO posts (
             id, title, subtitle, slug, excerpt, content, cover_image_url, status, category_id,
+            cover_display_mode, cover_focal_x, cover_focal_y, cover_width, cover_height, cover_aspect_ratio,
             featured, pinned, seo_title, seo_description, title_json, excerpt_json, content_json,
             seo_title_json, seo_description_json, translation_locks_json, reading_time, published_at, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
@@ -103,6 +120,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) =>
           optionalTextField(body, "cover_image_url"),
           statusField(body),
           optionalTextField(body, "category_id"),
+          typeof body.cover_display_mode === "string" ? body.cover_display_mode : "cover",
+          Math.min(100, Math.max(0, Math.round(Number(body.cover_focal_x ?? 50)))),
+          Math.min(100, Math.max(0, Math.round(Number(body.cover_focal_y ?? 50)))),
+          body.cover_width == null ? null : Math.max(0, Math.round(Number(body.cover_width))),
+          body.cover_height == null ? null : Math.max(0, Math.round(Number(body.cover_height))),
+          body.cover_aspect_ratio == null ? null : Number(body.cover_aspect_ratio),
           booleanField(body, "featured"),
           booleanField(body, "pinned"),
           optionalTextField(body, "seo_title"),
@@ -124,7 +147,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) =>
         await syncPostTags(context.env.DB, id, tags);
       }
 
-      const post = await context.env.DB.prepare("SELECT * FROM posts WHERE id = ?").bind(id).first();
+      const post = await getPostById(context.env.DB, id);
       return jsonResponse({ data: post, meta: { warnings: localization.warnings } }, { status: 201 });
     } catch (error) {
       return handleRequestError(error);

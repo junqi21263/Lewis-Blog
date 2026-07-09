@@ -7,9 +7,14 @@ type AdminDictionary = {
   nav: {
     dashboard: string;
     posts: string;
+    fragments: string;
+    categories: string;
+    tags: string;
     gallery: string;
     videos: string;
     drafts: string;
+    about: string;
+    gear: string;
     settings: string;
   };
   topbar: {
@@ -117,7 +122,28 @@ type AdminDictionary = {
     emptyDescription: string;
     imageDetails: string;
     assetMetadata: string;
+    closeDetails: string;
+    titleLabel: string;
+    descriptionLabel: string;
+    altTextLabel: string;
+    imageUrlLabel: string;
+    locationLabel: string;
+    dateLabel: string;
+    cityLabel: string;
+    countryLabel: string;
+    latitudeLabel: string;
+    longitudeLabel: string;
+    cameraLabel: string;
+    lensLabel: string;
+    isoLabel: string;
+    apertureLabel: string;
+    shutterSpeedLabel: string;
+    focalLengthLabel: string;
+    tagsLabel: string;
     featuredHint: string;
+    featuredLabel: string;
+    cancel: string;
+    delete: string;
     saveChanges: string;
     uploadCover: string;
     generateAiAltText: string;
@@ -133,8 +159,20 @@ type AdminDictionary = {
     clearSelection: string;
     noSelectionTitle: string;
     noSelectionDescription: string;
+    titleLabel: string;
+    descriptionLabel: string;
+    coverImageLabel: string;
+    videoUrlLabel: string;
+    platformLabel: string;
+    durationLabel: string;
+    tagsLabel: string;
     featuredHint: string;
+    featuredLabel: string;
     save: string;
+    cancel: string;
+    delete: string;
+    uploading: string;
+    untitledVideo: string;
     uploadCover: string;
   };
   settings: {
@@ -155,13 +193,69 @@ type AdminDictionary = {
     globalMeta: string;
     globalTitleFormat: string;
     defaultDescription: string;
+    footer: string;
+    footerDescription: string;
+    footerBrand: string;
+    footerCopy: string;
+    footerCopyright: string;
+    footerLocation: string;
+    footerPreview: string;
     saveChanges: string;
+  };
+  about: {
+    title: string;
+    description: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    eyebrow: string;
+    headline: string;
+    body: string;
+    heroImage: string;
+    imageAlt: string;
+    imageFit: string;
+    imageFitOptions: Record<"cover" | "contain" | "full-width", string>;
+    imagePositionX: string;
+    imagePositionXOptions: Record<"left" | "center" | "right", string>;
+    imagePositionY: string;
+    imagePositionYOptions: Record<"top" | "center" | "bottom", string>;
+    imageAspectRatio: string;
+    imageAspectRatioOptions: Record<"wide" | "cinema" | "square" | "original", string>;
+    seoTitle: string;
+    seoDescription: string;
+    regenerate: string;
+    sourceLanguage: string;
+    livePreview: string;
+  };
+  gearCms: {
+    title: string;
+    description: string;
+    newItem: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    details: string;
+    name: string;
+    maker: string;
+    year: string;
+    category: string;
+    status: string;
+    archiveUses: string;
+    imageUrl: string;
+    imageAlt: string;
+    tags: string;
+    sortOrder: string;
+    featured: string;
+    save: string;
+    delete: string;
+    current: string;
+    archived: string;
+    uploadImage: string;
+    allCategories: string;
   };
 };
 
 const adminDictionaries: Record<Locale, AdminDictionary> = {
   "zh-CN": {
-    nav: { dashboard: "概览", posts: "文章", gallery: "图库", videos: "影片", drafts: "草稿", settings: "设置" },
+    nav: { dashboard: "概览", posts: "文章", fragments: "碎片", categories: "分类", tags: "标签", gallery: "图库", videos: "影片", drafts: "草稿", about: "关于", gear: "器材", settings: "设置" },
     topbar: {
       searchPlaceholder: "搜索文章、图片、影片...",
       previewSite: "预览站点",
@@ -202,7 +296,7 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       tableDate: "日期",
       tableStatus: "状态",
       tableActions: "操作",
-      noArticlesTitle: "No articles yet",
+      noArticlesTitle: "暂无文章",
       noArticlesDescription: "第一篇文章创建后，已发布内容和草稿都会出现在这里。",
     },
     editor: {
@@ -259,7 +353,7 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       description: "一个专门容纳未完成想法、草图与写作片段的空间。",
       searchPlaceholder: "搜索草稿...",
       convertToPost: "转为文章",
-      emptyTitle: "No drafts",
+      emptyTitle: "暂无草稿",
       emptyDescription: "未发布的写作会显示在这里。",
     },
     gallery: {
@@ -272,11 +366,32 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       drafts: "草稿",
       searchPlaceholder: "搜索图库...",
       dateAdded: "添加时间",
-      emptyTitle: "No gallery items",
+      emptyTitle: "暂无图库内容",
       emptyDescription: "上传第一张照片，开始图像归档。",
       imageDetails: "图片详情",
       assetMetadata: "资产元数据",
+      closeDetails: "关闭图片详情",
+      titleLabel: "标题",
+      descriptionLabel: "描述",
+      altTextLabel: "Alt 文本",
+      imageUrlLabel: "图片地址",
+      locationLabel: "地点",
+      dateLabel: "日期",
+      cityLabel: "城市",
+      countryLabel: "国家",
+      latitudeLabel: "纬度",
+      longitudeLabel: "经度",
+      cameraLabel: "相机",
+      lensLabel: "镜头",
+      isoLabel: "ISO",
+      apertureLabel: "光圈",
+      shutterSpeedLabel: "快门速度",
+      focalLengthLabel: "焦距",
+      tagsLabel: "标签",
       featuredHint: "显示在图库精选中",
+      featuredLabel: "精选",
+      cancel: "取消",
+      delete: "删除",
       saveChanges: "保存更改",
       uploadCover: "上传封面",
       generateAiAltText: "生成 AI Alt 文本",
@@ -286,14 +401,26 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       description: "一个克制的影片目录，用于管理视频条目、封面和播放信息。",
       newVideo: "新建影片",
       uploadVideo: "上传影片",
-      noFilmsTitle: "No films yet",
+      noFilmsTitle: "暂无影片",
       noFilmsDescription: "添加第一条影片记录，开始动态影像归档。",
       metadata: "元数据",
       clearSelection: "清除选择",
       noSelectionTitle: "未选择影片",
       noSelectionDescription: "创建或选择一条影片记录以编辑元数据。",
+      titleLabel: "标题",
+      descriptionLabel: "描述",
+      coverImageLabel: "封面图",
+      videoUrlLabel: "视频地址",
+      platformLabel: "平台",
+      durationLabel: "时长",
+      tagsLabel: "标签",
       featuredHint: "显示在 Films 页面",
+      featuredLabel: "精选",
       save: "保存",
+      cancel: "取消",
+      delete: "删除",
+      uploading: "上传中",
+      untitledVideo: "未命名影片",
       uploadCover: "上传封面",
     },
     settings: {
@@ -314,11 +441,67 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       globalMeta: "全局元信息",
       globalTitleFormat: "全局标题格式",
       defaultDescription: "默认描述",
+      footer: "Footer",
+      footerDescription: "管理站点底部的品牌、简介、版权与所在地。",
+      footerBrand: "品牌",
+      footerCopy: "简介",
+      footerCopyright: "版权",
+      footerLocation: "所在地",
+      footerPreview: "预览",
       saveChanges: "保存更改",
+    },
+    about: {
+      title: "关于",
+      description: "编辑前台 About 页面文案、图像与 SEO 内容。",
+      emptyTitle: "关于页面尚未配置",
+      emptyDescription: "保存后，前台 About 页面会从 D1 读取这里的内容。",
+      eyebrow: "眉题",
+      headline: "标题",
+      body: "正文",
+      heroImage: "主图",
+      imageAlt: "图片 Alt",
+      imageFit: "图片展示",
+      imageFitOptions: { cover: "裁切填满", contain: "完整展示", "full-width": "宽度铺满" },
+      imagePositionX: "横向焦点",
+      imagePositionXOptions: { left: "左", center: "中", right: "右" },
+      imagePositionY: "纵向焦点",
+      imagePositionYOptions: { top: "上", center: "中", bottom: "下" },
+      imageAspectRatio: "画幅",
+      imageAspectRatioOptions: { wide: "宽屏", cinema: "影院", square: "方形", original: "原始比例" },
+      seoTitle: "SEO 标题",
+      seoDescription: "SEO 描述",
+      regenerate: "重新生成翻译",
+      sourceLanguage: "源语言",
+      livePreview: "实时预览",
+    },
+    gearCms: {
+      title: "器材",
+      description: "管理前台 Gear 页面中的设备条目、图片与排序。",
+      newItem: "新增器材",
+      emptyTitle: "暂无器材记录。",
+      emptyDescription: "创建第一条器材记录后，前台 Gear 页面会从这里读取内容。",
+      details: "器材详情",
+      name: "名称",
+      maker: "品牌",
+      year: "年份",
+      category: "分类",
+      status: "状态",
+      archiveUses: "归档使用次数",
+      imageUrl: "图片地址",
+      imageAlt: "图片 Alt",
+      tags: "标签",
+      sortOrder: "排序",
+      featured: "精选",
+      save: "保存",
+      delete: "删除",
+      current: "当前使用",
+      archived: "已归档",
+      uploadImage: "上传图片",
+      allCategories: "全部分类",
     },
   },
   "zh-TW": {
-    nav: { dashboard: "總覽", posts: "文章", gallery: "圖庫", videos: "影片", drafts: "草稿", settings: "設定" },
+    nav: { dashboard: "總覽", posts: "文章", fragments: "碎片", categories: "分類", tags: "標籤", gallery: "圖庫", videos: "影片", drafts: "草稿", about: "關於", gear: "器材", settings: "設定" },
     topbar: {
       searchPlaceholder: "搜尋文章、圖片、影片...",
       previewSite: "預覽站點",
@@ -359,7 +542,7 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       tableDate: "日期",
       tableStatus: "狀態",
       tableActions: "操作",
-      noArticlesTitle: "No articles yet",
+      noArticlesTitle: "暫無文章",
       noArticlesDescription: "建立第一篇文章後，已發布內容與草稿都會出現在這裡。",
     },
     editor: {
@@ -416,7 +599,7 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       description: "一個專門容納未完成想法、草圖與寫作片段的空間。",
       searchPlaceholder: "搜尋草稿...",
       convertToPost: "轉為文章",
-      emptyTitle: "No drafts",
+      emptyTitle: "暫無草稿",
       emptyDescription: "未發布的寫作會顯示在這裡。",
     },
     gallery: {
@@ -429,11 +612,32 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       drafts: "草稿",
       searchPlaceholder: "搜尋圖庫...",
       dateAdded: "加入時間",
-      emptyTitle: "No gallery items",
+      emptyTitle: "暫無圖庫內容",
       emptyDescription: "上傳第一張照片，開始圖像歸檔。",
       imageDetails: "圖片詳情",
       assetMetadata: "資產中繼資料",
+      closeDetails: "關閉圖片詳情",
+      titleLabel: "標題",
+      descriptionLabel: "描述",
+      altTextLabel: "Alt 文字",
+      imageUrlLabel: "圖片網址",
+      locationLabel: "地點",
+      dateLabel: "日期",
+      cityLabel: "城市",
+      countryLabel: "國家",
+      latitudeLabel: "緯度",
+      longitudeLabel: "經度",
+      cameraLabel: "相機",
+      lensLabel: "鏡頭",
+      isoLabel: "ISO",
+      apertureLabel: "光圈",
+      shutterSpeedLabel: "快門速度",
+      focalLengthLabel: "焦距",
+      tagsLabel: "標籤",
       featuredHint: "顯示在圖庫精選中",
+      featuredLabel: "精選",
+      cancel: "取消",
+      delete: "刪除",
       saveChanges: "儲存變更",
       uploadCover: "上傳封面",
       generateAiAltText: "生成 AI Alt 文字",
@@ -443,14 +647,26 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       description: "一個克制的影片目錄，用於管理影片條目、封面與播放資訊。",
       newVideo: "新增影片",
       uploadVideo: "上傳影片",
-      noFilmsTitle: "No films yet",
+      noFilmsTitle: "暫無影片",
       noFilmsDescription: "新增第一條影片記錄，開始動態影像歸檔。",
       metadata: "中繼資料",
       clearSelection: "清除選擇",
       noSelectionTitle: "未選擇影片",
       noSelectionDescription: "建立或選擇一條影片記錄以編輯中繼資料。",
+      titleLabel: "標題",
+      descriptionLabel: "描述",
+      coverImageLabel: "封面圖",
+      videoUrlLabel: "影片網址",
+      platformLabel: "平台",
+      durationLabel: "時長",
+      tagsLabel: "標籤",
       featuredHint: "顯示在 Films 頁面",
+      featuredLabel: "精選",
       save: "儲存",
+      cancel: "取消",
+      delete: "刪除",
+      uploading: "上傳中",
+      untitledVideo: "未命名影片",
       uploadCover: "上傳封面",
     },
     settings: {
@@ -471,11 +687,67 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       globalMeta: "全域中繼資訊",
       globalTitleFormat: "全域標題格式",
       defaultDescription: "預設描述",
+      footer: "Footer",
+      footerDescription: "管理站點底部的品牌、簡介、版權與所在地。",
+      footerBrand: "品牌",
+      footerCopy: "簡介",
+      footerCopyright: "版權",
+      footerLocation: "所在地",
+      footerPreview: "預覽",
       saveChanges: "儲存變更",
+    },
+    about: {
+      title: "關於",
+      description: "編輯前台 About 頁面的文案、圖像與 SEO 內容。",
+      emptyTitle: "關於頁面尚未配置",
+      emptyDescription: "儲存後，前台 About 頁面會從 D1 讀取這裡的內容。",
+      eyebrow: "眉題",
+      headline: "標題",
+      body: "正文",
+      heroImage: "主圖",
+      imageAlt: "圖片 Alt",
+      imageFit: "圖片展示",
+      imageFitOptions: { cover: "裁切填滿", contain: "完整展示", "full-width": "寬度鋪滿" },
+      imagePositionX: "橫向焦點",
+      imagePositionXOptions: { left: "左", center: "中", right: "右" },
+      imagePositionY: "縱向焦點",
+      imagePositionYOptions: { top: "上", center: "中", bottom: "下" },
+      imageAspectRatio: "畫幅",
+      imageAspectRatioOptions: { wide: "寬螢幕", cinema: "影院", square: "方形", original: "原始比例" },
+      seoTitle: "SEO 標題",
+      seoDescription: "SEO 描述",
+      regenerate: "重新生成翻譯",
+      sourceLanguage: "源語言",
+      livePreview: "即時預覽",
+    },
+    gearCms: {
+      title: "器材",
+      description: "管理前台 Gear 頁面的設備條目、圖片與排序。",
+      newItem: "新增器材",
+      emptyTitle: "暫無器材記錄。",
+      emptyDescription: "建立第一條器材記錄後，前台 Gear 頁面會從這裡讀取內容。",
+      details: "器材詳情",
+      name: "名稱",
+      maker: "品牌",
+      year: "年份",
+      category: "分類",
+      status: "狀態",
+      archiveUses: "歸檔使用次數",
+      imageUrl: "圖片網址",
+      imageAlt: "圖片 Alt",
+      tags: "標籤",
+      sortOrder: "排序",
+      featured: "精選",
+      save: "儲存",
+      delete: "刪除",
+      current: "目前使用",
+      archived: "已歸檔",
+      uploadImage: "上傳圖片",
+      allCategories: "全部分類",
     },
   },
   "en-US": {
-    nav: { dashboard: "Dashboard", posts: "Posts", gallery: "Gallery", videos: "Videos", drafts: "Drafts", settings: "Settings" },
+    nav: { dashboard: "Dashboard", posts: "Posts", fragments: "Fragments", categories: "Categories", tags: "Tags", gallery: "Gallery", videos: "Videos", drafts: "Drafts", about: "About", gear: "Gear", settings: "Settings" },
     topbar: {
       searchPlaceholder: "Search posts, images, films...",
       previewSite: "Preview Site",
@@ -590,7 +862,28 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       emptyDescription: "Upload the first photograph to begin the image archive.",
       imageDetails: "Image Details",
       assetMetadata: "Asset Metadata",
+      closeDetails: "Close image details",
+      titleLabel: "Title",
+      descriptionLabel: "Description",
+      altTextLabel: "Alt Text",
+      imageUrlLabel: "Image URL",
+      locationLabel: "Location",
+      dateLabel: "Date",
+      cityLabel: "City",
+      countryLabel: "Country",
+      latitudeLabel: "Latitude",
+      longitudeLabel: "Longitude",
+      cameraLabel: "Camera",
+      lensLabel: "Lens",
+      isoLabel: "ISO",
+      apertureLabel: "Aperture",
+      shutterSpeedLabel: "Shutter Speed",
+      focalLengthLabel: "Focal Length",
+      tagsLabel: "Tags",
       featuredHint: "Show in gallery highlights",
+      featuredLabel: "Featured",
+      cancel: "Cancel",
+      delete: "Delete",
       saveChanges: "Save Changes",
       uploadCover: "Upload Cover",
       generateAiAltText: "Generate AI Alt Text",
@@ -606,8 +899,20 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       clearSelection: "Clear selection",
       noSelectionTitle: "No video selected",
       noSelectionDescription: "Create or select a video to edit metadata.",
+      titleLabel: "Title",
+      descriptionLabel: "Description",
+      coverImageLabel: "Cover Image",
+      videoUrlLabel: "Video URL",
+      platformLabel: "Platform",
+      durationLabel: "Duration",
+      tagsLabel: "Tags",
       featuredHint: "Feature on Films page",
+      featuredLabel: "Featured",
       save: "Save",
+      cancel: "Cancel",
+      delete: "Delete",
+      uploading: "Uploading",
+      untitledVideo: "Untitled Video",
       uploadCover: "Upload Cover",
     },
     settings: {
@@ -628,7 +933,63 @@ const adminDictionaries: Record<Locale, AdminDictionary> = {
       globalMeta: "Global Meta",
       globalTitleFormat: "Global Title Format",
       defaultDescription: "Default Description",
+      footer: "Footer",
+      footerDescription: "Manage the site footer brand, description, copyright, and location.",
+      footerBrand: "Brand",
+      footerCopy: "Description",
+      footerCopyright: "Copyright",
+      footerLocation: "Location",
+      footerPreview: "Preview",
       saveChanges: "Save Changes",
+    },
+    about: {
+      title: "About",
+      description: "Edit the public About page copy, hero image, and SEO fields.",
+      emptyTitle: "About page is not configured yet",
+      emptyDescription: "Once saved, the public About page will read this content from D1.",
+      eyebrow: "Eyebrow",
+      headline: "Headline",
+      body: "Body",
+      heroImage: "Hero Image",
+      imageAlt: "Image Alt",
+      imageFit: "Image Fit",
+      imageFitOptions: { cover: "Cover crop", contain: "Contain full image", "full-width": "Full width" },
+      imagePositionX: "Horizontal Focus",
+      imagePositionXOptions: { left: "Left", center: "Center", right: "Right" },
+      imagePositionY: "Vertical Focus",
+      imagePositionYOptions: { top: "Top", center: "Center", bottom: "Bottom" },
+      imageAspectRatio: "Aspect Ratio",
+      imageAspectRatioOptions: { wide: "Wide", cinema: "Cinema", square: "Square", original: "Original" },
+      seoTitle: "SEO Title",
+      seoDescription: "SEO Description",
+      regenerate: "Regenerate translation",
+      sourceLanguage: "Source Language",
+      livePreview: "Live Preview",
+    },
+    gearCms: {
+      title: "Gear",
+      description: "Manage public Gear entries, images, and ordering.",
+      newItem: "New Gear Item",
+      emptyTitle: "No gear entries yet.",
+      emptyDescription: "Create the first gear record and the public Gear page will load from D1.",
+      details: "Gear Details",
+      name: "Name",
+      maker: "Maker",
+      year: "Year",
+      category: "Category",
+      status: "Status",
+      archiveUses: "Archive Uses",
+      imageUrl: "Image URL",
+      imageAlt: "Image Alt",
+      tags: "Tags",
+      sortOrder: "Sort Order",
+      featured: "Featured",
+      save: "Save",
+      delete: "Delete",
+      current: "Current",
+      archived: "Archived",
+      uploadImage: "Upload Image",
+      allCategories: "All Categories",
     },
   },
 };

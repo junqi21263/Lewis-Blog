@@ -9,10 +9,18 @@ import StatusBadge from "@/components/admin/StatusBadge";
 import { getCategoryById } from "@/data/cms";
 import { useCmsData } from "@/hooks/useCmsData";
 import { useAdminI18n } from "@/i18n/admin";
+import { formatAdminDate } from "@/lib/adminDate";
 
 export default function AdminPostsPage() {
   const { data, error, deletePost } = useCmsData();
-  const { dictionary } = useAdminI18n();
+  const { dictionary, locale } = useAdminI18n();
+
+  const postActionLabels =
+    locale === "zh-CN"
+      ? { edit: "编辑", preview: "预览", delete: "删除" }
+      : locale === "zh-TW"
+        ? { edit: "編輯", preview: "預覽", delete: "刪除" }
+        : { edit: "Edit", preview: "Preview", delete: "Delete" };
 
   async function handleDelete(postId: string) {
     try {
@@ -71,6 +79,7 @@ export default function AdminPostsPage() {
       <div className="space-y-4">
         {data.posts.map((post) => {
           const category = getCategoryById(data, post.categoryId);
+          const displayDate = formatAdminDate(post.publishedAt || post.updatedAt, locale);
           return (
           <AdminCard key={post.id} className="group p-6 hover:-translate-y-1 hover:bg-surface-container">
             <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
@@ -82,22 +91,22 @@ export default function AdminPostsPage() {
                 </div>
                 <div>
                   <h2 className="mb-1 font-serif text-headline-md leading-tight text-on-surface">{post.title}</h2>
-                  <p className="text-body-md text-on-surface-variant lg:hidden">{category.name} / {post.publishedAt || post.updatedAt}</p>
+                  <p className="text-body-md text-on-surface-variant lg:hidden">{category.name} / {displayDate}</p>
                 </div>
               </Link>
               <div className="hidden text-body-md text-on-surface-variant lg:col-span-2 lg:block">{category.name}</div>
-              <div className="hidden font-mono text-label-mono uppercase tracking-widest text-on-surface-variant lg:col-span-2 lg:block">{post.publishedAt || post.updatedAt}</div>
+              <div className="hidden font-mono text-label-mono uppercase tracking-widest text-on-surface-variant lg:col-span-2 lg:block">{displayDate}</div>
               <div className="lg:col-span-2">
                 <StatusBadge status={post.status} />
               </div>
               <div className="flex items-center gap-3 opacity-100 transition lg:col-span-1 lg:justify-end lg:opacity-0 lg:group-hover:opacity-100">
-                <Link className="text-on-surface-variant transition hover:text-on-surface" href={`/admin/posts/edit?id=${encodeURIComponent(post.id)}`} aria-label={`Edit ${post.title}`}>
+                <Link className="text-on-surface-variant transition hover:text-on-surface" href={`/admin/posts/edit?id=${encodeURIComponent(post.id)}`} aria-label={`${postActionLabels.edit} ${post.title}`}>
                   <Edit3 aria-hidden size={19} />
                 </Link>
-                <button className="text-on-surface-variant transition hover:text-on-surface" type="button" aria-label={`Preview ${post.title}`}>
+                <button className="text-on-surface-variant transition hover:text-on-surface" type="button" aria-label={`${postActionLabels.preview} ${post.title}`}>
                   <Eye aria-hidden size={19} />
                 </button>
-                <button className="text-on-surface-variant transition hover:text-secondary" type="button" aria-label={`Delete ${post.title}`} onClick={() => void handleDelete(post.id)}>
+                <button className="text-on-surface-variant transition hover:text-secondary" type="button" aria-label={`${postActionLabels.delete} ${post.title}`} onClick={() => void handleDelete(post.id)}>
                   <Archive aria-hidden size={19} />
                 </button>
               </div>

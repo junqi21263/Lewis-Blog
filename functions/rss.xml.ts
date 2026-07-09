@@ -13,8 +13,8 @@ type FeedPost = {
 import { localeFromRequest, localizedValue, prefixedPath } from "./_lib/localization";
 
 const siteUrl = "https://journal.lewislee.online";
-const siteName = "Noah. Studio Journal";
-const siteDescription = "A Nordic editorial personal journal for travel, photography, films, and essays.";
+const siteName = "Lewis Photograph Blog";
+const siteDescription = "A Nordic editorial journal for photography, travel, films, gear, and deliberate writing.";
 
 function escapeXml(value: string) {
   return value

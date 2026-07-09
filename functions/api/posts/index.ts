@@ -30,7 +30,7 @@ async function listPosts(db: D1Database) {
        LEFT JOIN tags ON tags.id = post_tags.tag_id
        WHERE posts.status = 'published'
        GROUP BY posts.id
-       ORDER BY posts.pinned DESC, posts.published_at DESC, posts.updated_at DESC`,
+       ORDER BY COALESCE(NULLIF(posts.published_at, ''), posts.created_at) DESC, posts.created_at DESC`,
     )
     .all<PostRow>();
 

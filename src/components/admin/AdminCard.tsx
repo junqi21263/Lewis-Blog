@@ -10,7 +10,7 @@ export default function AdminCard({ as = "div", className, children, ...props }:
   return (
     <Component
       className={cn(
-        "rounded-[20px] border border-outline-variant/10 bg-surface-container-lowest transition duration-500 ease-editorial",
+        "min-w-0 rounded-[8px] border border-outline-variant/10 bg-surface-container-lowest transition duration-500 ease-editorial",
         className,
       )}
       {...props}

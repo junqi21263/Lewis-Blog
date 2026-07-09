@@ -1,6 +1,9 @@
 import { errorResponse, jsonResponse, requireAccess, withErrorHandling } from "../../_lib/api";
 
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
+const MAX_COVER_UPLOAD_SIZE = 20 * 1024 * 1024;
+const coverMimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+const coverExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 const allowedMimeTypes = new Set([
   "image/jpeg",
   "image/png",
@@ -50,6 +53,15 @@ function safeSegment(value: string, fallback: string) {
   return segment || fallback;
 }
 
+function safeFolderPath(value: string, fallback: string) {
+  const segments = value
+    .split("/")
+    .map((segment) => safeSegment(segment, ""))
+    .filter(Boolean);
+
+  return segments.length > 0 ? segments.join("/") : fallback;
+}
+
 function extensionFromName(name: string) {
   const lastPart = name.split("/").pop() ?? name;
   const dotIndex = lastPart.lastIndexOf(".");
@@ -68,17 +80,25 @@ function isAllowedUpload(file: File, ext: string) {
 
 async function uploadFile(context: EventContext<Env, string, unknown>, file: File, folder: string) {
   const ext = extensionFromName(file.name);
+  const isPostImage = folder === "posts" || folder.startsWith("posts/");
   if (file.size <= 0) {
     throw new Error(`${file.name || "file"} must not be empty.`);
   }
+  if ((folder === "covers" || isPostImage) && file.size > MAX_COVER_UPLOAD_SIZE) {
+    throw new Error(`${file.name || "file"} exceeds the 20MB image upload limit.`);
+  }
   if (file.size > MAX_UPLOAD_SIZE) {
     throw new Error(`${file.name || "file"} exceeds the 50MB upload limit.`);
+  }
+  if ((folder === "covers" || isPostImage) && !(coverMimeTypes.has(file.type) || coverExtensions.has(ext))) {
+    throw new Error(`${file.name || "file"} must be a jpg, png, webp, or avif image.`);
   }
   if (!isAllowedUpload(file, ext)) {
     throw new Error(`${file.name || "file"} is not an allowed image or video format.`);
   }
 
-  const key = `${folder}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}${ext}`;
+  const datedFolder = folder.startsWith("fragments/") ? folder : `${folder}/${new Date().toISOString().slice(0, 10)}`;
+  const key = `${datedFolder}/${crypto.randomUUID()}${ext}`;
   const body = await file.arrayBuffer();
 
   await context.env.ASSETS_BUCKET.put(key, body, {
@@ -113,7 +133,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) =>
 
     const formData = await context.request.formData();
     const folderValue = formData.get("folder");
-    const folder = typeof folderValue === "string" ? safeSegment(folderValue, "uploads") : "uploads";
+    const folder = typeof folderValue === "string" ? safeFolderPath(folderValue, "uploads") : "uploads";
     const files = [...formData.getAll("files"), formData.get("file")].filter((value): value is File => value instanceof File);
     if (files.length === 0) {
       return errorResponse("At least one file is required.");

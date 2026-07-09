@@ -15,7 +15,7 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2 md:gap-gutter xl:grid-cols-3">
         {images.map((image, index) => (
           <button
             key={image.id}
@@ -36,7 +36,7 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
             >
               <div
                 aria-label={image.alt}
-                className="h-full w-full bg-cover bg-center grayscale transition duration-1000 group-hover:scale-105 group-hover:grayscale-0"
+                className="h-full w-full bg-cover bg-center transition duration-1000 md:grayscale md:group-hover:scale-105 md:group-hover:grayscale-0"
                 role="img"
                 style={{ backgroundImage: `url("${image.src}")` }}
               />

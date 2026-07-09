@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/inject-static-hreflang.mjs && pagefind --site out --output-subdir pagefind",
+    "postbuild": "node scripts/inject-static-hreflang.mjs && pagefind --site out --output-subdir pagefind --glob '**/index.html'",
     "pages:dev": "wrangler pages dev ./out",
     "pages:preview": "npm run build && wrangler pages dev ./out",
     "start": "next start",

@@ -1,7 +1,7 @@
 import { creatorConfig } from "../../src/data/creator";
 import { buildLanguageAlternates } from "../../src/i18n/metadata";
 import { localizePostRecord, localeFromRoute, prefixedPath } from "../_lib/localization";
-import type { Locale } from "../../src/i18n/config";
+import { localeToSegment, type Locale } from "../../src/i18n/config";
 
 type ArticleRow = {
   id: string;
@@ -14,6 +14,9 @@ type ArticleRow = {
   content: string;
   content_json?: string | null;
   cover_image_url: string | null;
+  cover_display_mode?: string | null;
+  cover_focal_x?: number | null;
+  cover_focal_y?: number | null;
   status: string;
   seo_title: string | null;
   seo_title_json?: string | null;
@@ -30,6 +33,25 @@ type ArticleRow = {
 type StaticShell = {
   headAssets: string;
   bodyClass: string;
+  footerJson: Record<Locale, FooterFields>;
+  brandJson: Record<Locale, BrandFields>;
+};
+
+type FooterFields = {
+  brand: string;
+  description: string;
+  copyright: string;
+  location: string;
+};
+
+type BrandFields = {
+  brandName: string;
+  brandDisplayMode: "text" | "stackedText" | "imageLogo";
+  logoText: string;
+  logoImageUrl: string;
+  logoAlt: string;
+  cmsTitle: string;
+  cmsSubtitle: string;
 };
 
 const {
@@ -38,6 +60,44 @@ const {
   umamiScriptUrl,
   umamiWebsiteId,
 } = creatorConfig.analytics;
+
+const footerLocales = ["zh-CN", "zh-TW", "en-US"] as const satisfies Locale[];
+const footerFields = ["brand", "description", "copyright", "location"] as const satisfies Array<keyof FooterFields>;
+const brandFields = ["brandName", "logoText", "logoImageUrl", "logoAlt", "cmsTitle", "cmsSubtitle"] as const satisfies Array<keyof Omit<BrandFields, "brandDisplayMode">>;
+const defaultFooterJson: Record<Locale, FooterFields> = {
+  "zh-CN": {
+    brand: "Lewis.",
+    description: "关于旅行、摄影、影像与安静写作的个人归档。",
+    copyright: "© 2026 Lewis Lee.",
+    location: "Guangzhou · China",
+  },
+  "zh-TW": {
+    brand: "Lewis.",
+    description: "關於旅行、攝影、影像與安靜寫作的個人歸檔。",
+    copyright: "© 2026 Lewis Lee.",
+    location: "Guangzhou · China",
+  },
+  "en-US": {
+    brand: "Lewis.",
+    description: "A personal archive for travel, photography, moving images, and quiet writing.",
+    copyright: "© 2026 Lewis Lee.",
+    location: "Guangzhou · China",
+  },
+};
+const defaultBrandFields: BrandFields = {
+  brandName: "Lewis Photograph Blog",
+  brandDisplayMode: "text",
+  logoText: "Lewis.",
+  logoImageUrl: "",
+  logoAlt: "Lewis Photograph Blog logo",
+  cmsTitle: "Lewis Photograph Blog",
+  cmsSubtitle: "Editorial CMS",
+};
+const defaultBrandJson: Record<Locale, BrandFields> = {
+  "zh-CN": defaultBrandFields,
+  "zh-TW": defaultBrandFields,
+  "en-US": defaultBrandFields,
+};
 
 function renderAnalyticsScripts(enabled: boolean) {
   if (!enabled) return "";
@@ -71,6 +131,67 @@ function escapeAttribute(value: unknown) {
   return escapeHtml(value).replace(/`/g, "&#96;");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeFooterJson(value: unknown): Record<Locale, FooterFields> {
+  const source = typeof value === "string" ? safeParseJson(value) : value;
+  const sourceRecord = isRecord(source) ? source : {};
+
+  return Object.fromEntries(
+    footerLocales.map((locale) => {
+      const rawLocale = sourceRecord[locale];
+      const rawFields = isRecord(rawLocale) ? rawLocale : {};
+      const fields = Object.fromEntries(
+        footerFields.map((field) => [field, typeof rawFields[field] === "string" ? rawFields[field] : ""]),
+      ) as FooterFields;
+      return [locale, fields];
+    }),
+  ) as Record<Locale, FooterFields>;
+}
+
+function normalizeBrandJson(value: unknown): Record<Locale, BrandFields> {
+  const source = typeof value === "string" ? safeParseJson(value) : value;
+  const sourceRecord = isRecord(source) ? source : {};
+
+  return Object.fromEntries(
+    footerLocales.map((locale) => {
+      const fallback = defaultBrandJson[locale] ?? defaultBrandJson["zh-CN"];
+      const rawLocale = sourceRecord[locale];
+      const rawFields = isRecord(rawLocale) ? rawLocale : {};
+      const fields = Object.fromEntries(
+        brandFields.map((field) => [field, typeof rawFields[field] === "string" ? rawFields[field] : fallback[field]]),
+      ) as Omit<BrandFields, "brandDisplayMode">;
+      const rawMode = rawFields.brandDisplayMode;
+      const brandDisplayMode = rawMode === "stackedText" || rawMode === "imageLogo" || rawMode === "text" ? rawMode : fallback.brandDisplayMode;
+      return [locale, { ...fields, brandDisplayMode }];
+    }),
+  ) as Record<Locale, BrandFields>;
+}
+
+function safeParseJson(value: string) {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function resolveFooterContent(footerJson: Record<Locale, FooterFields>, locale: Locale): FooterFields {
+  const chain: Locale[] = locale === "zh-CN" ? ["zh-CN", "en-US"] : locale === "zh-TW" ? ["zh-TW", "zh-CN", "en-US"] : ["en-US", "zh-CN"];
+
+  return Object.fromEntries(
+    footerFields.map((field) => {
+      for (const candidate of chain) {
+        const value = footerJson[candidate]?.[field]?.trim();
+        if (value) return [field, value];
+      }
+      return [field, defaultFooterJson[locale][field] || defaultFooterJson["zh-CN"][field]];
+    }),
+  ) as FooterFields;
+}
+
 function routeParam(context: EventContext<Env, string, unknown>, name: string) {
   const value = context.params[name];
   return Array.isArray(value) ? value[0] : value;
@@ -78,7 +199,7 @@ function routeParam(context: EventContext<Env, string, unknown>, name: string) {
 
 function normalizeAssetUrl(value: string | null) {
   if (!value) {
-    return "/images/open-road.jpg";
+    return "";
   }
 
   const r2Prefix = "r2://nordic-blog-assets/";
@@ -89,16 +210,114 @@ function normalizeAssetUrl(value: string | null) {
   return value;
 }
 
-function formatDate(value: string | null) {
+function coverObjectFit(value: string | null | undefined) {
+  return value === "contain" || value === "original" ? "contain" : "cover";
+}
+
+function coverObjectPosition(x: number | null | undefined, y: number | null | undefined) {
+  const normalize = (value: number | null | undefined) => {
+    const numeric = Number(value ?? 50);
+    return Number.isFinite(numeric) ? Math.min(100, Math.max(0, Math.round(numeric))) : 50;
+  };
+  return `${normalize(x)}% ${normalize(y)}%`;
+}
+
+const editorialImageFilterClassName = [
+  "transition-[filter]",
+  "duration-300",
+  "ease-[ease]",
+  "md:grayscale",
+  "md:brightness-[0.92]",
+  "md:contrast-[0.96]",
+  "md:group-hover/editorial-image:grayscale-0",
+  "md:group-hover/editorial-image:brightness-100",
+  "md:group-hover/editorial-image:contrast-100",
+].join(" ");
+
+function formatDate(value: string | null, locale: Locale = "en-US") {
   if (!value) {
     return "Published";
   }
 
   try {
-    return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(value));
+    const dateLocale = locale === "zh-CN" ? "zh-Hans-CN" : locale === "zh-TW" ? "zh-Hant-TW" : "en-US";
+    return new Intl.DateTimeFormat(dateLocale, { month: "long", day: "numeric", year: "numeric" }).format(new Date(value));
   } catch {
     return value;
   }
+}
+
+function labels(locale: Locale) {
+  if (locale === "zh-CN") {
+    return {
+      home: "首页",
+      journal: "文章",
+      gallery: "图库",
+      gear: "器材",
+      films: "影片",
+      about: "关于",
+      search: "搜索",
+      theme: "切换主题",
+      contents: "目录",
+      footnotes: "注释",
+      footnoteBack: "返回",
+      tags: "标签",
+      backToJournal: "返回文章",
+      published: "已发布",
+      minRead: "分钟阅读",
+      words: "字",
+      readingCompletion: "阅读完成",
+      readingCompletionHint: "读到文章末尾后，会在此设备上标记为已读完。",
+      readingCompletionDone: "这篇文章已在此设备上标记为读完。",
+      articleEyebrow: "文章 - 编辑归档",
+    };
+  }
+  if (locale === "zh-TW") {
+    return {
+      home: "首頁",
+      journal: "文章",
+      gallery: "圖庫",
+      gear: "器材",
+      films: "影片",
+      about: "關於",
+      search: "搜尋",
+      theme: "切換主題",
+      contents: "目錄",
+      footnotes: "註釋",
+      footnoteBack: "返回",
+      tags: "標籤",
+      backToJournal: "返回文章",
+      published: "已發佈",
+      minRead: "分鐘閱讀",
+      words: "字",
+      readingCompletion: "閱讀完成",
+      readingCompletionHint: "讀到文章末尾後，會在此裝置上標記為已讀完。",
+      readingCompletionDone: "這篇文章已在此裝置上標記為讀完。",
+      articleEyebrow: "文章 - 編輯歸檔",
+    };
+  }
+  return {
+    home: "Home",
+    journal: "Journal",
+    gallery: "Gallery",
+    gear: "Gear",
+    films: "Films",
+    about: "About",
+    search: "Search",
+    theme: "Toggle theme",
+    contents: "Contents",
+    footnotes: "Footnotes",
+    footnoteBack: "Back",
+    tags: "Tags",
+    backToJournal: "Back to journal",
+    published: "Published",
+    minRead: "min read",
+    words: "words",
+    readingCompletion: "Reading Completion",
+    readingCompletionHint: "Reach the end of the essay to mark it complete on this device.",
+    readingCompletionDone: "This essay is marked complete on this device.",
+    articleEyebrow: "Journal - Editorial",
+  };
 }
 
 function slugifyHeading(value: string) {
@@ -190,11 +409,12 @@ function renderMarkdown(markdown: string) {
       continue;
     }
 
-    const imageMatch = trimmed.match(/^!\[(.*)]\((.*)\)$/);
+    const imageMatch = trimmed.match(/^!\[(.*)]\((\S+)(?:\s+"([^"]*)")?\)$/);
     if (imageMatch) {
       const src = normalizeAssetUrl(imageMatch[2]);
       const alt = imageMatch[1];
-      html.push(`<figure class="my-12"><button class="image-zoom group block w-full cursor-zoom-in text-left" type="button" data-image-zoom data-src="${escapeAttribute(src)}" data-alt="${escapeAttribute(alt)}" aria-label="Zoom image: ${escapeAttribute(alt)}"><img alt="${escapeAttribute(alt)}" class="w-full grayscale" src="${escapeAttribute(src)}"/></button><figcaption class="mt-4 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">${escapeHtml(alt)}</figcaption></figure>`);
+      const layoutClass = imageMatch[3] === "full-width" ? " md:-mx-16" : "";
+      html.push(`<figure class="group/editorial-image my-14${layoutClass}"><button class="block w-full cursor-zoom-in text-left" type="button" data-image-zoom data-src="${escapeAttribute(src)}" data-alt="${escapeAttribute(alt)}" aria-label="Zoom image: ${escapeAttribute(alt)}"><span class="block overflow-hidden bg-surface-container-low"><img alt="${escapeAttribute(alt)}" class="h-auto w-full object-contain ${editorialImageFilterClassName}" src="${escapeAttribute(src)}"/></span></button><figcaption class="mt-4 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">${escapeHtml(alt)}</figcaption></figure>`);
       index += 1;
       continue;
     }
@@ -255,8 +475,31 @@ function renderMarkdown(markdown: string) {
 async function getStaticShell(context: EventContext<Env, string, unknown>): Promise<StaticShell> {
   const url = new URL("/journal/", context.request.url);
   const response = await context.env.ASSETS.fetch(new Request(url, { method: "GET" }));
+  let footerJson = defaultFooterJson;
+  let brandJson = defaultBrandJson;
+
+  try {
+    const result = await context.env.DB.prepare("SELECT key, value, value_type FROM site_settings WHERE key IN ('footer_json', 'brand_json')").all<{
+      key: string;
+      value: string;
+      value_type: string;
+    }>();
+    for (const row of result.results) {
+      const parsed = row.value_type === "json" ? safeParseJson(row.value) : row.value;
+      if (row.key === "footer_json") {
+        footerJson = normalizeFooterJson(parsed);
+      }
+      if (row.key === "brand_json") {
+        brandJson = normalizeBrandJson(parsed);
+      }
+    }
+  } catch {
+    footerJson = defaultFooterJson;
+    brandJson = defaultBrandJson;
+  }
+
   if (!response.ok) {
-    return { headAssets: "", bodyClass: "antialiased" };
+    return { headAssets: "", bodyClass: "antialiased", footerJson, brandJson };
   }
 
   const html = await response.text();
@@ -265,7 +508,7 @@ async function getStaticShell(context: EventContext<Env, string, unknown>): Prom
     (match) => match[0],
   ).join("");
   const bodyClass = html.match(/<body class="([^"]+)"/)?.[1] ?? "antialiased";
-  return { headAssets, bodyClass };
+  return { headAssets, bodyClass, footerJson, brandJson };
 }
 
 async function findArticle(db: D1Database, slug: string) {
@@ -369,48 +612,102 @@ function renderGiscusComments(slug: string, locale: Locale) {
   </section>`;
 }
 
-function renderHeader(locale: Locale) {
-  const linkClass = "font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-on-background";
+function localizedPathFor(locale: Locale, pathname: string) {
+  const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  return `/${localeToSegment(locale)}${normalized === "/" ? "/" : normalized}`.replace(/\/+/g, "/");
+}
+
+function renderSearchIcon() {
+  return `<svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>`;
+}
+
+function renderThemeIcon() {
+  return `<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`;
+}
+
+function renderHeader(locale: Locale, brand: BrandFields, currentPath = "/journal/") {
+  const copy = labels(locale);
+  const navItems = [
+    { href: "/", label: copy.home },
+    { href: "/journal/", label: copy.journal },
+    { href: "/gallery/", label: copy.gallery },
+    { href: "/gear/", label: copy.gear },
+    { href: "/films/", label: copy.films },
+    { href: "/about/", label: copy.about },
+  ];
+  const languageLabels: Record<Locale, string> = {
+    "zh-CN": "简",
+    "zh-TW": "繁",
+    "en-US": "EN",
+  };
+  const brandText = brand.logoText || brand.brandName;
+  const brandMarkup =
+    brand.brandDisplayMode === "imageLogo" && brand.logoImageUrl
+      ? `<img alt="${escapeAttribute(brand.logoAlt || brand.brandName)}" class="max-h-9 w-auto max-w-[180px] object-contain grayscale" src="${escapeAttribute(brand.logoImageUrl)}"/>`
+      : `<span class="${brand.brandDisplayMode === "stackedText" ? "block max-w-[11rem] whitespace-pre-line leading-tight" : ""}">${escapeHtml(brandText)}</span>`;
+
   return `
     <header class="fixed top-0 z-50 w-full border-b border-outline-variant/10 bg-background/85 backdrop-blur-md">
       <nav class="flex w-full items-center justify-between px-margin-mobile py-6 md:px-margin-desktop md:py-8">
-        <a class="font-serif text-headline-md tracking-tight text-on-background transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/"))}">Noah.</a>
+        <a class="font-serif text-headline-md tracking-tight text-on-background transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/"))}">${brandMarkup}</a>
         <div class="hidden items-center gap-gutter md:flex">
-          <a class="font-mono text-label-mono uppercase tracking-widest text-on-background transition-colors duration-500 hover:text-on-background" href="${escapeAttribute(prefixedPath(locale, "/journal/"))}">Journal</a>
-          <a class="${linkClass}" href="${escapeAttribute(prefixedPath(locale, "/gallery/"))}">Gallery</a>
-          <a class="${linkClass}" href="${escapeAttribute(prefixedPath(locale, "/gear/"))}">Gear</a>
-          <a class="${linkClass}" href="${escapeAttribute(prefixedPath(locale, "/films/"))}">Films</a>
-          <a class="${linkClass}" href="${escapeAttribute(prefixedPath(locale, "/about/"))}">About</a>
+          ${navItems
+            .map((item) => {
+              const active = item.href === "/journal/";
+              return `<a class="font-mono text-label-mono uppercase tracking-widest transition-colors duration-500 hover:text-on-background ${active ? "text-on-background" : "text-on-surface-variant"}" href="${escapeAttribute(prefixedPath(locale, item.href))}">${escapeHtml(item.label)}</a>`;
+            })
+            .join("")}
         </div>
-        <button aria-label="Toggle theme" class="grid size-10 place-items-center rounded-full border border-outline-variant/20 text-on-surface-variant transition duration-500 hover:border-secondary/50 hover:text-secondary" type="button" data-theme-toggle>○</button>
+        <div class="flex items-center gap-3">
+          <div aria-label="Language switcher" class="inline-flex items-center rounded-full border border-outline-variant/20 bg-surface-container-lowest/50 p-1" role="group">
+            ${(["zh-CN", "zh-TW", "en-US"] as const)
+              .map((item) => {
+                const active = item === locale;
+                return `<a aria-label="${escapeAttribute(item)}" class="min-w-11 rounded-full px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.24em] transition duration-200 ${active ? "bg-primary text-background" : "text-on-surface-variant hover:border-outline-variant/40 hover:text-on-background"}" href="${escapeAttribute(localizedPathFor(item, currentPath))}">${languageLabels[item]}</a>`;
+              })
+              .join("")}
+          </div>
+          <button aria-label="${escapeAttribute(copy.search)}" class="grid size-10 place-items-center rounded-full text-on-surface-variant transition duration-500 hover:text-secondary" type="button" data-search-open>${renderSearchIcon()}</button>
+          <button aria-label="${escapeAttribute(copy.theme)}" class="grid size-10 place-items-center rounded-full border border-outline-variant/20 text-on-surface-variant transition duration-500 hover:border-secondary/50 hover:text-secondary" type="button" data-theme-toggle>${renderThemeIcon()}</button>
+        </div>
       </nav>
     </header>`;
 }
 
-function renderFooter(locale: Locale) {
+function renderFooter(locale: Locale, footerJson: Record<Locale, FooterFields>) {
+  const copy = labels(locale);
+  const footer = resolveFooterContent(footerJson, locale);
   return `
-    <footer class="border-t border-outline-variant/10 bg-background pb-16 pt-28 md:pb-margin-desktop md:pt-section-gap">
-      <div class="editorial-shell flex flex-col items-start justify-between gap-gutter md:flex-row">
-        <div>
-          <a class="mb-4 block font-serif text-headline-md tracking-tight text-on-background" href="${escapeAttribute(prefixedPath(locale, "/"))}">Noah.</a>
-          <p class="max-w-sm text-body-md text-on-surface-variant">Editorial notes on travel, photography, films, and quiet design systems.</p>
+    <footer class="border-t border-outline-variant/10 bg-background py-20 md:py-24">
+      <div class="editorial-shell grid gap-12 md:grid-cols-[minmax(0,0.65fr)_minmax(280px,0.35fr)] md:items-start">
+        <div class="max-w-xl">
+          <a class="mb-5 block font-serif text-headline-md tracking-tight text-on-background transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/"))}">${escapeHtml(footer.brand)}</a>
+          <p class="max-w-md text-body-md text-on-surface-variant">${escapeHtml(footer.description)}</p>
+          <div class="mt-10 space-y-2 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">
+            <p>${escapeHtml(footer.copyright)}</p>
+            <p>${escapeHtml(footer.location)}</p>
+          </div>
         </div>
-        <div class="grid grid-cols-2 gap-x-12 gap-y-6 md:flex md:gap-16">
-          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/journal/"))}">Journal</a>
-          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/gallery/"))}">Gallery</a>
-          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/gear/"))}">Gear</a>
-          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/films/"))}">Films</a>
-          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/about/"))}">About</a>
-        </div>
+        <nav aria-label="${escapeAttribute(copy.about)}" class="grid grid-cols-2 gap-x-12 gap-y-5 md:ml-auto md:flex md:flex-col md:items-end">
+          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/journal/"))}">${copy.journal}</a>
+          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/gallery/"))}">${copy.gallery}</a>
+          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/gear/"))}">${copy.gear}</a>
+          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/films/"))}">${copy.films}</a>
+          <a class="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/about/"))}">${copy.about}</a>
+        </nav>
       </div>
     </footer>`;
 }
 
 function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticShell, sourceArticles: ArticleRow[], includeAnalytics: boolean, locale: Locale) {
+  const copy = labels(locale);
   const post = localizePostRecord(sourcePost as unknown as Record<string, unknown>, locale) as ArticleRow;
+  const brand = shell.brandJson[locale] ?? shell.brandJson["zh-CN"];
+  const brandName = brand.brandName || brand.cmsTitle || "Lewis Photograph Blog";
   const articles = sourceArticles.map((item) => localizePostRecord(item as unknown as Record<string, unknown>, locale) as ArticleRow);
   const tags = post.tag_names ? post.tag_names.split(",").filter(Boolean) : [];
   const coverImage = normalizeAssetUrl(post.cover_image_url);
+  const coverStyle = `object-fit:${coverObjectFit(post.cover_display_mode)};object-position:${coverObjectPosition(post.cover_focal_x, post.cover_focal_y)}`;
   const title = post.seo_title || post.title;
   const description = post.seo_description || post.excerpt || post.subtitle || `Read ${post.title}.`;
   const canonical = new URL(prefixedPath(locale, `/journal/${post.slug}/`), request.url).toString();
@@ -424,14 +721,14 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
   const readingMinutes = getReadingMinutes(post.content);
   const tocHtml =
     toc.length > 0
-      ? `<nav aria-label="Table of contents" class="border-t border-outline-variant/10 pt-8"><div class="label-mono mb-5">Contents</div><div class="flex gap-4 overflow-x-auto pb-2 md:block md:overflow-visible md:pb-0">${toc
+      ? `<nav aria-label="Table of contents" class="border-t border-outline-variant/10 pt-8"><div class="label-mono mb-5">${copy.contents}</div><div class="flex gap-4 overflow-x-auto pb-2 md:block md:overflow-visible md:pb-0">${toc
           .map((item) => `<a class="block min-w-fit border-l border-outline-variant/10 py-2 pl-4 font-mono text-[11px] uppercase tracking-widest text-on-surface-variant transition hover:text-on-background ${item.level > 2 ? "md:ml-4" : ""}" href="#${escapeAttribute(item.id)}">${escapeHtml(item.title)}</a>`)
           .join("")}</div></nav>`
       : "";
   const footnotesHtml =
     footnotes.length > 0
-      ? `<section class="mt-20 border-t border-outline-variant/10 pt-10"><div class="label-mono mb-6">Footnotes</div><ol class="space-y-4">${footnotes
-          .map((footnote) => `<li id="${escapeAttribute(footnote.id)}" class="scroll-mt-36 text-body-md text-on-surface-variant"><span class="mr-3 font-mono text-label-mono text-on-background">[${escapeHtml(footnote.label)}]</span>${escapeHtml(footnote.text)}<a class="ml-3 text-on-background transition hover:text-secondary" href="#footnote-ref-${escapeAttribute(footnote.label)}">Back</a></li>`)
+      ? `<section class="mt-20 border-t border-outline-variant/10 pt-10"><div class="label-mono mb-6">${copy.footnotes}</div><ol class="space-y-4">${footnotes
+          .map((footnote) => `<li id="${escapeAttribute(footnote.id)}" class="scroll-mt-36 text-body-md text-on-surface-variant"><span class="mr-3 font-mono text-label-mono text-on-background">[${escapeHtml(footnote.label)}]</span>${escapeHtml(footnote.text)}<a class="ml-3 text-on-background transition hover:text-secondary" href="#footnote-ref-${escapeAttribute(footnote.label)}">${copy.footnoteBack}</a></li>`)
           .join("")}</ol></section>`
       : "";
 
@@ -441,7 +738,7 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   ${shell.headAssets}
-  <title>${escapeHtml(title)} | Noah. Studio Journal</title>
+  <title>${escapeHtml(title)} | ${escapeHtml(brandName)}</title>
   <meta name="description" content="${escapeAttribute(description)}"/>
   <link rel="canonical" href="${escapeAttribute(canonical)}"/>
   ${hreflang}
@@ -449,7 +746,7 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
   <meta property="og:title" content="${escapeAttribute(post.title)}"/>
   <meta property="og:description" content="${escapeAttribute(description)}"/>
   <meta property="og:url" content="${escapeAttribute(canonical)}"/>
-  <meta property="og:site_name" content="Noah. Studio Journal"/>
+  <meta property="og:site_name" content="${escapeAttribute(brandName)}"/>
   <meta property="og:type" content="article"/>
   <meta property="og:image" content="${escapeAttribute(new URL(`/og/${post.slug}`, request.url).toString())}"/>
   ${post.published_at ? `<meta property="article:published_time" content="${escapeAttribute(post.published_at)}"/>` : ""}
@@ -465,8 +762,8 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
     description,
     image: new URL(`/og/${post.slug}`, request.url).toString(),
     datePublished: post.published_at,
-    author: { "@type": "Organization", name: "Noah. Studio" },
-    publisher: { "@type": "Organization", name: "Noah. Studio Journal" },
+    author: { "@type": "Organization", name: brandName },
+    publisher: { "@type": "Organization", name: brandName },
     mainEntityOfPage: canonical,
     inLanguage: locale,
     keywords: tags.join(", "),
@@ -477,25 +774,35 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
   <div class="pointer-events-none fixed left-0 top-0 z-[60] h-1 w-full bg-transparent">
     <div class="h-full w-full bg-outline-variant/40" data-reading-progress style="transform:scaleX(0);transform-origin:0 50%"></div>
   </div>
-  ${renderHeader(locale)}
+  ${renderHeader(locale, brand, `/journal/${post.slug}/`)}
   <main class="page-fade min-h-screen pt-32">
     <article>
       <header class="mb-24 md:mb-section-gap">
         <div class="editorial-shell relative z-10 mb-14">
-          <div class="label-mono mb-8">Journal - Editorial</div>
+          <div class="label-mono mb-8">${copy.articleEyebrow}</div>
           <h1 class="mb-8 max-w-4xl font-serif text-display-lg text-on-background md:text-display-xl">${escapeHtml(post.title)}</h1>
           <div class="flex flex-wrap items-center gap-4 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">
-            <span>Noah. Studio</span>
+            <span>${escapeHtml(brandName)}</span>
             <span class="size-1 rounded-full bg-outline-variant"></span>
-            <span>${escapeHtml(formatDate(post.published_at))}</span>
+            <span>${escapeHtml(post.published_at ? formatDate(post.published_at, locale) : copy.published)}</span>
             <span class="size-1 rounded-full bg-outline-variant"></span>
-            <span>${escapeHtml(readingMinutes)} min read</span>
+            <span>${escapeHtml(readingMinutes)} ${copy.minRead}</span>
             <span class="size-1 rounded-full bg-outline-variant"></span>
-            <span>${escapeHtml(wordCount.toLocaleString("en-US"))} words</span>
+            <span>${escapeHtml(wordCount.toLocaleString(locale === "en-US" ? "en-US" : locale))} ${copy.words}</span>
           </div>
         </div>
-        <div class="relative h-[60vh] min-h-[420px] w-full md:h-[80vh]">
-          <img alt="${escapeAttribute(`${post.title} cover image`)}" class="h-full w-full object-cover grayscale" src="${escapeAttribute(coverImage)}"/>
+        <div class="group/editorial-image relative h-[60vh] min-h-[420px] w-full md:h-[80vh]">
+          ${
+            coverImage
+              ? `<img alt="${escapeAttribute(`${post.title} cover image`)}" class="h-full w-full ${editorialImageFilterClassName}" style="${escapeAttribute(coverStyle)}" src="${escapeAttribute(coverImage)}"/>`
+              : `<div class="relative grid h-full w-full place-items-center bg-surface-container-low">
+                  <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.08),_transparent_55%)]"></div>
+                  <div class="relative px-8 text-center">
+                    <div class="label-mono mb-4 text-on-surface-variant">${escapeHtml(brandName)}</div>
+                    <p class="mx-auto max-w-xl font-serif text-headline-md text-on-background">${escapeHtml(post.title)}</p>
+                  </div>
+                </div>`
+          }
           <div class="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent"></div>
         </div>
       </header>
@@ -505,13 +812,13 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
           <div class="sticky top-40 flex flex-col gap-8">
             ${tocHtml}
             <div>
-              <div class="label-mono mb-4">Tags</div>
+              <div class="label-mono mb-4">${copy.tags}</div>
               <div class="flex flex-wrap gap-2">
                 ${tags.map((tag) => `<span class="rounded-full border border-outline-variant/20 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">${escapeHtml(tag)}</span>`).join("")}
               </div>
             </div>
             <div class="h-px w-full bg-outline-variant/20"></div>
-            <a class="label-mono transition-colors hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/journal/"))}">Back to journal</a>
+            <a class="label-mono transition-colors hover:text-secondary" href="${escapeAttribute(prefixedPath(locale, "/journal/"))}">${copy.backToJournal}</a>
           </div>
         </aside>
 
@@ -522,8 +829,8 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
           </div>
           ${footnotesHtml}
           <div class="mt-16 border-t border-outline-variant/10 pt-8">
-            <div class="label-mono mb-3">Reading Completion</div>
-            <p class="text-body-md text-on-surface-variant" data-reading-completion>Reach the end of the essay to mark it complete on this device.</p>
+            <div class="label-mono mb-3">${copy.readingCompletion}</div>
+            <p class="text-body-md text-on-surface-variant" data-reading-completion>${copy.readingCompletionHint}</p>
           </div>
           ${renderGiscusComments(post.slug, locale)}
           ${renderNavigation(post, articles, locale)}
@@ -531,7 +838,7 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
       </div>
     </article>
   </main>
-  ${renderFooter(locale)}
+  ${renderFooter(locale, shell.footerJson)}
   <div class="fixed inset-0 z-[80] hidden items-center justify-center bg-background/95 p-margin-mobile backdrop-blur-md md:p-margin-desktop" data-image-modal>
     <button aria-label="Close lightbox" class="absolute right-6 top-6 grid size-11 place-items-center rounded-full border border-outline-variant/20 text-on-surface-variant transition hover:text-on-background" type="button" data-image-modal-close>×</button>
     <figure class="w-full max-w-5xl">
@@ -552,13 +859,13 @@ function renderArticle(sourcePost: ArticleRow, request: Request, shell: StaticSh
         if (progress) progress.style.transform = "scaleX(" + value + ")";
         if (completion && value >= 0.9) {
           window.localStorage.setItem(completionKey, "true");
-          completion.textContent = "This essay is marked complete on this device.";
+          completion.textContent = ${JSON.stringify(copy.readingCompletionDone)};
         }
       };
       window.addEventListener("scroll", update, { passive: true });
       window.addEventListener("resize", update);
       if (completion && window.localStorage.getItem(completionKey) === "true") {
-        completion.textContent = "This essay is marked complete on this device.";
+        completion.textContent = ${JSON.stringify(copy.readingCompletionDone)};
       }
       update();
 

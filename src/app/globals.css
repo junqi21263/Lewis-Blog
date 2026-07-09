@@ -47,6 +47,11 @@ html {
   scroll-behavior: smooth;
 }
 
+html,
+body {
+  max-width: 100%;
+}
+
 body {
   min-height: 100vh;
   overflow-x: hidden;
@@ -64,6 +69,34 @@ body {
 img,
 video {
   max-width: 100%;
+  height: auto;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+blockquote,
+figcaption,
+li {
+  overflow-wrap: anywhere;
+}
+
+@supports (text-wrap: balance) {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
 }
 
 @layer components {
@@ -98,6 +131,14 @@ video {
 
   .page-fade {
     animation: page-fade 560ms ease-out both;
+  }
+}
+
+@media (max-width: 767px) {
+  .group:hover .image-zoom img,
+  .image-zoom:hover img,
+  .card-lift:hover {
+    transform: none;
   }
 }
 

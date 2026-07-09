@@ -5,6 +5,7 @@ export type Dictionary = {
   nav: {
     home: string;
     journal: string;
+    fragments: string;
     gallery: string;
     gear: string;
     films: string;
@@ -49,14 +50,36 @@ export type Dictionary = {
     filmsLink: string;
     archiveEyebrow: string;
     archiveTitle: string;
+    fragmentsEyebrow: string;
+    fragmentsTitle: string;
     emptyTitle: string;
     emptyDescription: string;
   };
   journal: {
     eyebrow: string;
     title: string;
+    archiveLabel: string;
+    categoryFilter: string;
+    tagFilter: string;
+    yearFilter: string;
+    allFilter: string;
+    featuredLabel: string;
+    pinnedLabel: string;
+    emptyFilteredTitle: string;
+    emptyFilteredDescription: string;
     emptyTitle: string;
     emptyDescription: string;
+  };
+  fragments: {
+    eyebrow: string;
+    title: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    privateLabel: string;
+    publicLabel: string;
+    locationLabel: string;
+    cameraLabel: string;
+    moodLabel: string;
   };
   gallery: {
     eyebrow: string;
@@ -102,6 +125,8 @@ export type Dictionary = {
     siteDescription: string;
     journalTitle: string;
     journalDescription: string;
+    fragmentsTitle: string;
+    fragmentsDescription: string;
     galleryTitle: string;
     galleryDescription: string;
     filmsTitle: string;
@@ -117,13 +142,13 @@ export type Dictionary = {
 export const dictionaries: Record<Locale, Dictionary> = {
   "zh-CN": {
     localeLabelShort: "简",
-    nav: { home: "首页", journal: "Journal", gallery: "Gallery", gear: "Gear", films: "Films", about: "About" },
+    nav: { home: "首页", journal: "文章", fragments: "碎片", gallery: "图库", gear: "器材", films: "影片", about: "关于" },
     common: {
       readMore: "继续阅读",
       published: "已发布",
       draft: "草稿",
       empty: "暂无内容",
-      backToJournal: "返回 Journal",
+      backToJournal: "返回文章",
       noPublishedEntries: "暂无已发布内容。",
       searchTitle: "搜索归档",
       searchSubtitle: "查找文章、影像或影片。",
@@ -144,56 +169,78 @@ export const dictionaries: Record<Locale, Dictionary> = {
       returnHome: "返回首页",
     },
     home: {
-      eyebrow: "Noah. Studio - Personal Journal",
+      eyebrow: "Lewis Photograph Blog - 个人归档",
       title: "关于北方道路、房间与影像的安静笔记。",
-      latestEyebrow: "Latest Journal",
+      latestEyebrow: "最新文章",
       latestTitle: "最新文章",
       latestLink: "查看全部文章",
-      galleryEyebrow: "Image Index",
+      galleryEyebrow: "影像归档",
       galleryTitle: "精选影像",
       galleryDescription: "收录风景、室内与灰阶肌理的摄影归档。",
-      filmsEyebrow: "Films / Videos",
+      filmsEyebrow: "影片 / 视频",
       filmsTitle: "动态笔记",
       filmsLink: "查看影片归档",
-      archiveEyebrow: "Archive",
+      archiveEyebrow: "归档",
       archiveTitle: "字段索引",
+      fragmentsEyebrow: "Fragments",
+      fragmentsTitle: "最近碎片",
       emptyTitle: "暂无已发布文章。",
       emptyDescription: "CMS 发布后的内容会显示在这里。",
     },
     journal: {
-      eyebrow: "Journal - Blog",
-      title: "文章、田野笔记与视觉研究。",
+      eyebrow: "文章 - 编辑归档",
+      title: "旅行记录、城市观察与影像笔记。",
+      archiveLabel: "Journal Archive",
+      categoryFilter: "分类筛选",
+      tagFilter: "标签筛选",
+      yearFilter: "年份筛选",
+      allFilter: "全部",
+      featuredLabel: "精选",
+      pinnedLabel: "置顶",
+      emptyFilteredTitle: "当前筛选下没有文章。",
+      emptyFilteredDescription: "试试其他分类、标签或年份。",
       emptyTitle: "暂无已发布内容。",
       emptyDescription: "CMS 发布后的文章会显示在这里。",
     },
+    fragments: {
+      eyebrow: "Fragments - 日常记录",
+      title: "生活碎片、随手记录与轻量影像笔记。",
+      emptyTitle: "暂无碎片记录。",
+      emptyDescription: "公开发布的碎片会显示在这里。",
+      privateLabel: "私密",
+      publicLabel: "公开",
+      locationLabel: "地点",
+      cameraLabel: "设备",
+      moodLabel: "心情",
+    },
     gallery: {
-      eyebrow: "Gallery - Image Archive",
+      eyebrow: "图库 - 影像归档",
       title: "精选影像。",
       description: "一个以摄影为中心的归档，按地点、时间、城市、国家、相机与镜头组织。",
       emptyTitle: "暂无已发布图片。",
       emptyDescription: "CMS 发布后的图片会显示在这里。",
     },
     films: {
-      eyebrow: "Films / Videos",
+      eyebrow: "影片 / 视频",
       title: "动态笔记。",
       description: "短篇影像随笔与氛围研究。每张卡片都可打开内联播放器。",
       emptyTitle: "暂无已发布视频。",
       emptyDescription: "CMS 发布后的影片会显示在这里。",
     },
     gear: {
-      eyebrow: "Gear - Field Equipment",
+      eyebrow: "器材 - 现场设备",
       title: "缓慢观看的工具。",
       description: "用于摄影归档的相机、镜头、声音工具与旅行物件清单。",
     },
     about: {
-      eyebrow: "About - Noah. Studio",
+      eyebrow: "About - Lewis Photograph Blog",
       title: "一个关于克制影像与缓慢写作的个人归档。",
-      description: "Noah. Studio 是一个关于旅行、摄影、建筑与影像的私人编辑档案，气质安静、克制，并为后续真实写作预留空间。",
-      sectionEyebrow: "Working Notes",
+      description: "Lewis Photograph Blog 是一个关于旅行、摄影、建筑与影像的私人编辑档案，气质安静、克制，并为后续真实写作预留空间。",
+      sectionEyebrow: "工作手记",
       sectionTitle: "实践",
       paragraphOne: "网站围绕可持续的编辑原语组织：文章、影像与影片。文本目前刻意保持简洁，便于后续替换而不破坏界面结构。",
       paragraphTwo: "视觉系统偏好高对比、大留白、serif 标题、mono 标签，以及以图像为中心的叙事方式。它的目标是承载个人作品，而不是制造装饰感。",
-      readJournal: "阅读 Journal",
+      readJournal: "阅读文章",
     },
     footer: {
       description: "关于旅行、摄影、影像与安静设计系统的编辑笔记。",
@@ -202,34 +249,36 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "404 - 页面缺失",
       title: "这个页面已经从归档中漂移。",
       description: "你要找的文章、图片或影片当前不在这个地址。",
-      journalLink: "返回 Journal",
+      journalLink: "返回文章",
       homeLink: "返回首页",
     },
     seo: {
-      siteTitle: "Noah. Studio Journal",
+      siteTitle: "Lewis Photograph Blog",
       siteDescription: "一个北欧杂志风的个人创作平台，关于旅行、摄影、影片与长文写作。",
-      journalTitle: "Journal",
-      journalDescription: "Noah. Studio 的文章、田野笔记与视觉研究。",
-      galleryTitle: "Gallery",
-      galleryDescription: "Noah. Studio 的摄影归档与精选影像。",
-      filmsTitle: "Films",
-      filmsDescription: "Noah. Studio 的短篇影片与动态笔记。",
-      gearTitle: "Gear",
-      gearDescription: "Noah. Studio 使用的相机、镜头与随身设备。",
-      aboutTitle: "About",
-      aboutDescription: "关于 Noah. Studio 的创作方法、视觉系统与归档理念。",
-      rssDescription: "Noah. Studio Journal 最新发布内容。",
+      journalTitle: "文章",
+      journalDescription: "Lewis Photograph Blog 的文章、田野笔记与视觉研究。",
+      fragmentsTitle: "碎片",
+      fragmentsDescription: "Lewis Photograph Blog 的生活碎片、随手记录与轻量影像笔记。",
+      galleryTitle: "图库",
+      galleryDescription: "Lewis Photograph Blog 的摄影归档与精选影像。",
+      filmsTitle: "影片",
+      filmsDescription: "Lewis Photograph Blog 的短篇影片与动态笔记。",
+      gearTitle: "器材",
+      gearDescription: "Lewis Photograph Blog 使用的相机、镜头与随身设备。",
+      aboutTitle: "关于",
+      aboutDescription: "关于 Lewis Photograph Blog 的创作方法、视觉系统与归档理念。",
+      rssDescription: "Lewis Photograph Blog 最新发布内容。",
     },
   },
   "zh-TW": {
     localeLabelShort: "繁",
-    nav: { home: "首頁", journal: "Journal", gallery: "Gallery", gear: "Gear", films: "Films", about: "About" },
+    nav: { home: "首頁", journal: "文章", fragments: "碎片", gallery: "圖庫", gear: "器材", films: "影片", about: "關於" },
     common: {
       readMore: "繼續閱讀",
       published: "已發佈",
       draft: "草稿",
       empty: "暫無內容",
-      backToJournal: "返回 Journal",
+      backToJournal: "返回文章",
       noPublishedEntries: "暫無已發佈內容。",
       searchTitle: "搜尋歸檔",
       searchSubtitle: "查找文章、影像或影片。",
@@ -250,56 +299,78 @@ export const dictionaries: Record<Locale, Dictionary> = {
       returnHome: "返回首頁",
     },
     home: {
-      eyebrow: "Noah. Studio - Personal Journal",
+      eyebrow: "Lewis Photograph Blog - 個人歸檔",
       title: "關於北方道路、房間與影像的安靜筆記。",
-      latestEyebrow: "Latest Journal",
+      latestEyebrow: "最新文章",
       latestTitle: "最新文章",
       latestLink: "查看全部文章",
-      galleryEyebrow: "Image Index",
+      galleryEyebrow: "影像歸檔",
       galleryTitle: "精選影像",
       galleryDescription: "收錄風景、室內與灰階肌理的攝影歸檔。",
-      filmsEyebrow: "Films / Videos",
+      filmsEyebrow: "影片 / 視頻",
       filmsTitle: "動態筆記",
       filmsLink: "查看影片歸檔",
-      archiveEyebrow: "Archive",
+      archiveEyebrow: "歸檔",
       archiveTitle: "欄位索引",
+      fragmentsEyebrow: "Fragments",
+      fragmentsTitle: "最近碎片",
       emptyTitle: "暫無已發佈文章。",
       emptyDescription: "CMS 發佈後的內容會顯示在這裡。",
     },
     journal: {
-      eyebrow: "Journal - Blog",
-      title: "文章、田野筆記與視覺研究。",
+      eyebrow: "文章 - 編輯歸檔",
+      title: "旅行記錄、城市觀察與影像筆記。",
+      archiveLabel: "Journal Archive",
+      categoryFilter: "分類篩選",
+      tagFilter: "標籤篩選",
+      yearFilter: "年份篩選",
+      allFilter: "全部",
+      featuredLabel: "精選",
+      pinnedLabel: "置頂",
+      emptyFilteredTitle: "目前篩選下沒有文章。",
+      emptyFilteredDescription: "試試其他分類、標籤或年份。",
       emptyTitle: "暫無已發佈內容。",
       emptyDescription: "CMS 發佈後的文章會顯示在這裡。",
     },
+    fragments: {
+      eyebrow: "Fragments - 日常記錄",
+      title: "生活碎片、隨手記錄與輕量影像筆記。",
+      emptyTitle: "暫無碎片記錄。",
+      emptyDescription: "公開發佈的碎片會顯示在這裡。",
+      privateLabel: "私密",
+      publicLabel: "公開",
+      locationLabel: "地點",
+      cameraLabel: "設備",
+      moodLabel: "心情",
+    },
     gallery: {
-      eyebrow: "Gallery - Image Archive",
+      eyebrow: "圖庫 - 影像歸檔",
       title: "精選影像。",
       description: "一個以攝影為核心的歸檔，依地點、時間、城市、國家、相機與鏡頭整理。",
       emptyTitle: "暫無已發佈圖片。",
       emptyDescription: "CMS 發佈後的圖片會顯示在這裡。",
     },
     films: {
-      eyebrow: "Films / Videos",
+      eyebrow: "影片 / 視頻",
       title: "動態筆記。",
       description: "短篇影像隨筆與氛圍研究。每張卡片都可開啟內嵌播放器。",
       emptyTitle: "暫無已發佈影片。",
       emptyDescription: "CMS 發佈後的影片會顯示在這裡。",
     },
     gear: {
-      eyebrow: "Gear - Field Equipment",
+      eyebrow: "器材 - 現場設備",
       title: "緩慢觀看的工具。",
       description: "用於攝影歸檔的相機、鏡頭、聲音工具與旅行物件清單。",
     },
     about: {
-      eyebrow: "About - Noah. Studio",
+      eyebrow: "About - Lewis Photograph Blog",
       title: "一個關於克制影像與緩慢寫作的個人歸檔。",
-      description: "Noah. Studio 是一個關於旅行、攝影、建築與影像的私人編輯檔案，氣質安靜、克制，並為後續真實寫作保留空間。",
-      sectionEyebrow: "Working Notes",
+      description: "Lewis Photograph Blog 是一個關於旅行、攝影、建築與影像的私人編輯檔案，氣質安靜、克制，並為後續真實寫作保留空間。",
+      sectionEyebrow: "工作手記",
       sectionTitle: "實踐",
       paragraphOne: "網站圍繞可持續的編輯原語組織：文章、影像與影片。文本目前刻意保持簡潔，便於之後替換而不破壞介面結構。",
       paragraphTwo: "視覺系統偏好高對比、大留白、serif 標題、mono 標籤，以及以圖像為中心的敘事方式。它的目標是承載個人作品，而非製造裝飾感。",
-      readJournal: "閱讀 Journal",
+      readJournal: "閱讀文章",
     },
     footer: {
       description: "關於旅行、攝影、影像與安靜設計系統的編輯筆記。",
@@ -308,28 +379,30 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "404 - 頁面缺失",
       title: "這個頁面已經從歸檔中漂移。",
       description: "你要找的文章、圖片或影片目前不在這個位址。",
-      journalLink: "返回 Journal",
+      journalLink: "返回文章",
       homeLink: "返回首頁",
     },
     seo: {
-      siteTitle: "Noah. Studio Journal",
+      siteTitle: "Lewis Photograph Blog",
       siteDescription: "一個北歐雜誌風的個人創作平台，關於旅行、攝影、影片與長文寫作。",
-      journalTitle: "Journal",
-      journalDescription: "Noah. Studio 的文章、田野筆記與視覺研究。",
-      galleryTitle: "Gallery",
-      galleryDescription: "Noah. Studio 的攝影歸檔與精選影像。",
-      filmsTitle: "Films",
-      filmsDescription: "Noah. Studio 的短篇影片與動態筆記。",
-      gearTitle: "Gear",
-      gearDescription: "Noah. Studio 使用的相機、鏡頭與隨身設備。",
-      aboutTitle: "About",
-      aboutDescription: "關於 Noah. Studio 的創作方法、視覺系統與歸檔理念。",
-      rssDescription: "Noah. Studio Journal 最新發佈內容。",
+      journalTitle: "文章",
+      journalDescription: "Lewis Photograph Blog 的文章、田野筆記與視覺研究。",
+      fragmentsTitle: "碎片",
+      fragmentsDescription: "Lewis Photograph Blog 的生活碎片、隨手記錄與輕量影像筆記。",
+      galleryTitle: "圖庫",
+      galleryDescription: "Lewis Photograph Blog 的攝影歸檔與精選影像。",
+      filmsTitle: "影片",
+      filmsDescription: "Lewis Photograph Blog 的短篇影片與動態筆記。",
+      gearTitle: "器材",
+      gearDescription: "Lewis Photograph Blog 使用的相機、鏡頭與隨身設備。",
+      aboutTitle: "關於",
+      aboutDescription: "關於 Lewis Photograph Blog 的創作方法、視覺系統與歸檔理念。",
+      rssDescription: "Lewis Photograph Blog 最新發佈內容。",
     },
   },
   "en-US": {
     localeLabelShort: "EN",
-    nav: { home: "Home", journal: "Journal", gallery: "Gallery", gear: "Gear", films: "Films", about: "About" },
+    nav: { home: "Home", journal: "Journal", fragments: "Fragments", gallery: "Gallery", gear: "Gear", films: "Films", about: "About" },
     common: {
       readMore: "Read more",
       published: "Published",
@@ -356,7 +429,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       returnHome: "Go home",
     },
     home: {
-      eyebrow: "Noah. Studio - Personal Journal",
+      eyebrow: "Lewis Photograph Blog - Personal Journal",
       title: "Quiet notes from northern roads, rooms, and frames.",
       latestEyebrow: "Latest Journal",
       latestTitle: "Recent Entries",
@@ -369,14 +442,36 @@ export const dictionaries: Record<Locale, Dictionary> = {
       filmsLink: "Watch archive",
       archiveEyebrow: "Archive",
       archiveTitle: "Field Index",
+      fragmentsEyebrow: "Fragments",
+      fragmentsTitle: "Recent Fragments",
       emptyTitle: "No published entries.",
       emptyDescription: "Published content from the CMS will appear here.",
     },
     journal: {
       eyebrow: "Journal - Blog",
-      title: "Essays, field notes, and visual studies.",
+      title: "Travel notes, city observations, and photographic essays.",
+      archiveLabel: "Journal Archive",
+      categoryFilter: "Category",
+      tagFilter: "Tag",
+      yearFilter: "Year",
+      allFilter: "All",
+      featuredLabel: "Featured",
+      pinnedLabel: "Pinned",
+      emptyFilteredTitle: "No entries match these filters.",
+      emptyFilteredDescription: "Try another category, tag, or year.",
       emptyTitle: "No published entries.",
       emptyDescription: "Published posts from the CMS will appear here.",
+    },
+    fragments: {
+      eyebrow: "Fragments - Daily Notes",
+      title: "Travel notes, city observations, and lightweight photographic fragments.",
+      emptyTitle: "No fragments yet.",
+      emptyDescription: "Public fragments will appear here once published.",
+      privateLabel: "Private",
+      publicLabel: "Public",
+      locationLabel: "Location",
+      cameraLabel: "Camera",
+      moodLabel: "Mood",
     },
     gallery: {
       eyebrow: "Gallery - Image Archive",
@@ -398,9 +493,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       description: "A quiet inventory of cameras, lenses, sound tools, and travel objects used across the photographic archive.",
     },
     about: {
-      eyebrow: "About - Noah. Studio",
+      eyebrow: "About - Lewis Photograph Blog",
       title: "A personal journal for restrained images and deliberate writing.",
-      description: "Noah. Studio is a small editorial archive for travel, photography, architecture, and films. The tone is quiet, tactile, and built for slow replacement with personal writing.",
+      description: "Lewis Photograph Blog is a small editorial archive for travel, photography, architecture, and films. The tone is quiet, tactile, and built for slow replacement with personal writing.",
       sectionEyebrow: "Working Notes",
       sectionTitle: "Practice",
       paragraphOne: "The site is organized around durable editorial primitives: entries, images, and films. Text stays intentionally simple for now so it can be replaced later without reshaping the interface.",
@@ -418,19 +513,21 @@ export const dictionaries: Record<Locale, Dictionary> = {
       homeLink: "Go home",
     },
     seo: {
-      siteTitle: "Noah. Studio Journal",
+      siteTitle: "Lewis Photograph Blog",
       siteDescription: "A Nordic editorial personal journal for travel, photography, films, and essays.",
       journalTitle: "Journal",
-      journalDescription: "Essays, field notes, and visual studies from Noah. Studio.",
+      journalDescription: "Essays, field notes, and visual studies from Lewis Photograph Blog.",
+      fragmentsTitle: "Fragments",
+      fragmentsDescription: "Daily notes, images, and lightweight field records from Lewis Photograph Blog.",
       galleryTitle: "Gallery",
-      galleryDescription: "Selected frames from the Noah. Studio image archive.",
+      galleryDescription: "Selected frames from the Lewis Photograph Blog image archive.",
       filmsTitle: "Films",
       filmsDescription: "Short-form video essays and atmospheric moving notes.",
       gearTitle: "Gear",
       gearDescription: "Field equipment, cameras, lenses, and tools behind the archive.",
       aboutTitle: "About",
-      aboutDescription: "About Noah. Studio, a personal journal for restrained images and deliberate writing.",
-      rssDescription: "Latest published essays from Noah. Studio Journal.",
+      aboutDescription: "About Lewis Photograph Blog, a personal journal for restrained images and deliberate writing.",
+      rssDescription: "Latest published essays from Lewis Photograph Blog.",
     },
   },
 };

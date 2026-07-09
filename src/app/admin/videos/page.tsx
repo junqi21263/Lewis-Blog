@@ -76,7 +76,7 @@ export default function AdminVideosPage() {
     const nextVideo = {
       ...draft,
       id: draft.id || slugifyTitle(draft.title) || `video-${Date.now()}`,
-      title: draft.title.trim() || "Untitled Video",
+      title: draft.title.trim() || dictionary.videos.untitledVideo,
     };
     setSaveState("Saving");
     try {
@@ -129,7 +129,7 @@ export default function AdminVideosPage() {
         if (!uploaded) {
           continue;
         }
-        const title = file.name.replace(/\.[^.]+$/, "") || "Untitled Video";
+        const title = file.name.replace(/\.[^.]+$/, "") || dictionary.videos.untitledVideo;
         lastCreated = await addVideo({
           ...createVideo(),
           title,
@@ -234,7 +234,7 @@ export default function AdminVideosPage() {
                   <span className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">{video.tags[0] ?? "Video"}</span>
                   {video.featured ? (
                     <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-primary">
-                      <Star aria-hidden size={12} /> Featured
+                      <Star aria-hidden size={12} /> {dictionary.videos.featuredLabel}
                     </span>
                   ) : (
                     <StatusBadge status={video.status} />
@@ -261,14 +261,14 @@ export default function AdminVideosPage() {
                 <div className="aspect-video w-full bg-cover bg-center grayscale" style={{ backgroundImage: `url("${draft.coverImage}")` }} />
               </div>
               <div className="space-y-8">
-                <AdminInput label="Title" value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} />
-                <AdminTextarea label="Description" rows={3} value={draft.description} onChange={(event) => updateDraft("description", event.target.value)} />
-                <AdminInput label="Cover Image" value={draft.coverImage} onChange={(event) => updateDraft("coverImage", event.target.value)} />
-                <AdminButton onClick={() => coverInputRef.current?.click()}>{saveState === "Saving" ? "Uploading" : dictionary.videos.uploadCover}</AdminButton>
-                <AdminInput label="Video URL" value={draft.videoUrl} onChange={(event) => updateDraft("videoUrl", event.target.value)} />
+                <AdminInput label={dictionary.videos.titleLabel} value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} />
+                <AdminTextarea label={dictionary.videos.descriptionLabel} rows={3} value={draft.description} onChange={(event) => updateDraft("description", event.target.value)} />
+                <AdminInput label={dictionary.videos.coverImageLabel} value={draft.coverImage} onChange={(event) => updateDraft("coverImage", event.target.value)} />
+                <AdminButton onClick={() => coverInputRef.current?.click()}>{saveState === "Saving" ? dictionary.videos.uploading : dictionary.videos.uploadCover}</AdminButton>
+                <AdminInput label={dictionary.videos.videoUrlLabel} value={draft.videoUrl} onChange={(event) => updateDraft("videoUrl", event.target.value)} />
                 <div className="grid grid-cols-[1fr_96px] gap-6">
                   <label className="block">
-                    <span className="label-mono mb-2 block">Platform</span>
+                    <span className="label-mono mb-2 block">{dictionary.videos.platformLabel}</span>
                     <select className="w-full border-0 border-b border-outline-variant/30 bg-transparent px-0 py-3 text-body-md text-on-surface focus:border-primary focus:ring-0" value={draft.platform} onChange={(event) => updateDraft("platform", event.target.value as Video["platform"])}>
                       {platformOptions.map((platform) => (
                         <option key={platform} className="bg-surface" value={platform}>
@@ -277,12 +277,12 @@ export default function AdminVideosPage() {
                       ))}
                     </select>
                   </label>
-                  <AdminInput className="text-center" label="Duration" value={draft.duration} onChange={(event) => updateDraft("duration", event.target.value)} />
+                  <AdminInput className="text-center" label={dictionary.videos.durationLabel} value={draft.duration} onChange={(event) => updateDraft("duration", event.target.value)} />
                 </div>
-                <AdminInput label="Tags" value={draft.tags.join(", ")} onChange={(event) => updateDraft("tags", parseTags(event.target.value))} />
+                <AdminInput label={dictionary.videos.tagsLabel} value={draft.tags.join(", ")} onChange={(event) => updateDraft("tags", parseTags(event.target.value))} />
                 <label className="flex cursor-pointer items-center justify-between border-t border-outline-variant/10 pt-4">
                   <span>
-                    <span className="block text-body-md text-on-surface">Featured</span>
+                    <span className="block text-body-md text-on-surface">{dictionary.videos.featuredLabel}</span>
                     <span className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">{dictionary.videos.featuredHint}</span>
                   </span>
                   <span className="relative inline-flex items-center">
@@ -293,11 +293,11 @@ export default function AdminVideosPage() {
                 </label>
                 <div className="flex justify-between gap-4 border-t border-outline-variant/10 pt-8">
                   <AdminButton className="text-secondary hover:text-secondary" variant="ghost" onClick={() => void handleDelete()}>
-                    <Trash2 aria-hidden size={15} /> Delete
+                    <Trash2 aria-hidden size={15} /> {dictionary.videos.delete}
                   </AdminButton>
                   <div className="flex gap-4">
-                    <AdminButton onClick={() => setDraft(selectedVideo ?? null)}>Cancel</AdminButton>
-                    <AdminButton variant="primary" onClick={() => void handleSave()}>{saveState === "Saving" ? "Saving" : dictionary.videos.save}</AdminButton>
+                    <AdminButton onClick={() => setDraft(selectedVideo ?? null)}>{dictionary.videos.cancel}</AdminButton>
+                    <AdminButton variant="primary" onClick={() => void handleSave()}>{saveState === "Saving" ? dictionary.editor.saving : dictionary.videos.save}</AdminButton>
                   </div>
                 </div>
               </div>

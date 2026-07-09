@@ -1,10 +1,14 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import {
   CalendarClock,
   Check,
   Code,
+  Copy,
   Eye,
+  ExternalLink,
   Heading1,
   Heading2,
   ImageIcon,
@@ -16,8 +20,10 @@ import {
   RotateCcw,
   Save,
   Send,
+  Trash2,
   Type,
   Unlock,
+  Upload,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import AdminButton from "@/components/admin/AdminButton";
@@ -25,7 +31,9 @@ import AdminInput from "@/components/admin/AdminInput";
 import AdminTextarea from "@/components/admin/AdminTextarea";
 import SaveIndicator from "@/components/admin/SaveIndicator";
 import StatusBadge from "@/components/admin/StatusBadge";
-import { createEmptyPost, getCategoryById, getPostTags, type Post, type TranslationField, type TranslationLocks } from "@/data/cms";
+import TagMultiSelect from "@/components/admin/TagMultiSelect";
+import { resolveBrandContent } from "@/components/brand/brandContent";
+import { createEmptyPost, getCategoryById, type Post, type Tag, type TranslationField, type TranslationLocks } from "@/data/cms";
 import { useCmsData } from "@/hooks/useCmsData";
 import type { Locale } from "@/i18n/config";
 import type { LocalizedTextMap } from "@/i18n/content";
@@ -33,6 +41,7 @@ import { useAdminI18n } from "@/i18n/admin";
 import { getReadingMinutes, getWordCount, parseMarkdownBlocks, slugifyTitle, type MarkdownBlock } from "@/lib/editor";
 import { applyMarkdownCommand, type MarkdownCommand } from "@/lib/markdownEditor";
 import { cn } from "@/lib/utils";
+import { localeToSegment } from "@/i18n/config";
 
 type PostEditorScreenProps = {
   postId?: string;
@@ -40,6 +49,7 @@ type PostEditorScreenProps = {
 
 type EditorStatus = "draft" | "published" | "scheduled" | "archived";
 type SaveState = "Unsaved" | "Saving" | "Saved";
+type PublishState = "idle" | "publishing" | "published";
 type EditorLocale = Locale;
 type LocalizedEditorFields = Record<Locale, Record<TranslationField, string>>;
 
@@ -49,8 +59,14 @@ type EditorDraft = {
   subtitle: string;
   slug: string;
   categoryId: string;
-  tags: string;
+  tags: string[];
   coverImage: string;
+  coverDisplayMode: "cover" | "contain" | "original";
+  coverFocalX: number;
+  coverFocalY: number;
+  coverWidth: number | null;
+  coverHeight: number | null;
+  coverAspectRatio: number | null;
   excerpt: string;
   content: string;
   status: EditorStatus;
@@ -64,18 +80,12 @@ type EditorDraft = {
   createdAt: string;
 };
 
-const editorLocales: Array<{ locale: EditorLocale; shortLabel: string; label: string; hint: string }> = [
-  { locale: "zh-CN", shortLabel: "简", label: "简体中文", hint: "Source" },
-  { locale: "zh-TW", shortLabel: "繁", label: "繁體中文", hint: "Traditional" },
-  { locale: "en-US", shortLabel: "EN", label: "English", hint: "Editorial" },
-];
+type ImageInsertMode = "inline" | "fullWidth" | "figure";
 
-const translationFieldLabels: Array<{ field: TranslationField; label: string }> = [
-  { field: "title", label: "Title" },
-  { field: "excerpt", label: "Excerpt" },
-  { field: "content", label: "Content" },
-  { field: "seoTitle", label: "SEO Title" },
-  { field: "seoDescription", label: "SEO Description" },
+const editorLocales: Array<{ locale: EditorLocale; shortLabel: string; label: string }> = [
+  { locale: "zh-CN", shortLabel: "简", label: "简体中文" },
+  { locale: "zh-TW", shortLabel: "繁", label: "繁體中文" },
+  { locale: "en-US", shortLabel: "EN", label: "English" },
 ];
 
 const toolbarItems: Array<{ command: MarkdownCommand; icon: typeof Heading1; divider?: boolean }> = [
@@ -119,7 +129,7 @@ function localizedFieldsFromPost(post: Post): LocalizedEditorFields {
   };
 }
 
-function createInitialDraft(post?: Post, tagNames = ""): EditorDraft {
+function createInitialDraft(post?: Post, tagIds?: string[]): EditorDraft {
   const emptyPost = post ?? createEmptyPost();
   const localizedFields = localizedFieldsFromPost(emptyPost);
   const sourceFields = localizedFields["zh-CN"];
@@ -133,8 +143,14 @@ function createInitialDraft(post?: Post, tagNames = ""): EditorDraft {
     subtitle: emptyPost.subtitle,
     slug: emptyPost.slug,
     categoryId: emptyPost.categoryId,
-    tags: tagNames,
+    tags: tagIds ?? emptyPost.tagIds,
     coverImage: emptyPost.coverImage.src,
+    coverDisplayMode: emptyPost.coverDisplayMode,
+    coverFocalX: emptyPost.coverFocalX,
+    coverFocalY: emptyPost.coverFocalY,
+    coverWidth: emptyPost.coverImage.width ?? null,
+    coverHeight: emptyPost.coverImage.height ?? null,
+    coverAspectRatio: emptyPost.coverImage.aspectRatio ?? null,
     excerpt,
     content: sourceFields.content,
     status: emptyPost.status,
@@ -157,7 +173,7 @@ function localizedMapFromDraft(draft: EditorDraft, field: TranslationField) {
   ) as LocalizedTextMap;
 }
 
-function draftToPost(draft: EditorDraft, tagIds: string[]): Post {
+function draftToPost(draft: EditorDraft): Post {
   const now = new Date().toISOString().slice(0, 16);
   const sourceFields = draft.localizedFields["zh-CN"];
   const fallbackTitle = sourceFields.title.trim() || draft.title.trim() || "Untitled Editorial";
@@ -174,11 +190,20 @@ function draftToPost(draft: EditorDraft, tagIds: string[]): Post {
     subtitle: draft.subtitle,
     slug,
     categoryId: draft.categoryId,
-    tagIds,
+    tagIds: draft.tags,
     coverImage: {
       src: draft.coverImage,
       alt: draft.coverImage ? `${fallbackTitle} cover image.` : "",
+      displayMode: draft.coverDisplayMode,
+      focalX: draft.coverFocalX,
+      focalY: draft.coverFocalY,
+      width: draft.coverWidth,
+      height: draft.coverHeight,
+      aspectRatio: draft.coverAspectRatio,
     },
+    coverDisplayMode: draft.coverDisplayMode,
+    coverFocalX: draft.coverFocalX,
+    coverFocalY: draft.coverFocalY,
     excerpt: sourceExcerpt,
     excerptJson: localizedMapFromDraft(draft, "excerpt"),
     content: sourceContent,
@@ -289,7 +314,7 @@ function PreviewBlock({ block }: { block: MarkdownBlock }) {
 
   if (block.type === "image") {
     return (
-      <figure className="my-12 overflow-hidden bg-surface-container-low">
+      <figure className={cn("my-12 overflow-hidden bg-surface-container-low", block.layout === "full-width" ? "md:-mx-8" : "")}>
         <div className="aspect-[16/10] bg-cover bg-center grayscale" style={{ backgroundImage: `url("${block.src}")` }} />
         <figcaption className="label-mono mt-3">{block.alt}</figcaption>
       </figure>
@@ -310,15 +335,51 @@ function PreviewBlock({ block }: { block: MarkdownBlock }) {
   return <p className="mb-8 text-body-lg text-on-background">{renderInline(block.text)}</p>;
 }
 
+function readImageMetrics(file: File) {
+  return new Promise<{ width: number; height: number; aspectRatio: number }>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new window.Image();
+    image.onload = () => {
+      const width = image.naturalWidth;
+      const height = image.naturalHeight;
+      URL.revokeObjectURL(url);
+      resolve({ width, height, aspectRatio: height > 0 ? Number((width / height).toFixed(4)) : 0 });
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Unable to read cover image dimensions."));
+    };
+    image.src = url;
+  });
+}
+
+function postImageFolder(now = new Date()) {
+  return `posts/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function safeMarkdownAlt(value: string) {
+  return value.replace(/[\[\]\n\r]/g, " ").trim() || "image";
+}
+
 export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
-  const { data, isReady, updatePost, error } = useCmsData();
-  const { dictionary } = useAdminI18n();
+  const { data, isReady, updatePost, addTag, uploadAsset, error } = useCmsData();
+  const { dictionary, locale } = useAdminI18n();
+  const brand = resolveBrandContent(data.siteSettings.brandJson, locale);
   const post = data.posts.find((item) => item.id === postId);
   const isNew = !postId;
   const [draft, setDraft] = useState<EditorDraft>(() => createInitialDraft(post));
   const [saveState, setSaveState] = useState<SaveState>("Saved");
   const [saveError, setSaveError] = useState("");
   const [translationNotice, setTranslationNotice] = useState("");
+  const [publishState, setPublishState] = useState<PublishState>("idle");
+  const [publishedInfo, setPublishedInfo] = useState<{ title: string; publishedAt: string; url: string } | null>(null);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [imageUploadFile, setImageUploadFile] = useState<File | null>(null);
+  const [imageAltText, setImageAltText] = useState("");
+  const [imageCaption, setImageCaption] = useState("");
+  const [imageInsertMode, setImageInsertMode] = useState<ImageInsertMode>("inline");
+  const [isImageUploading, setIsImageUploading] = useState(false);
   const [activeLocale, setActiveLocale] = useState<EditorLocale>("zh-CN");
   const [slugWasEdited, setSlugWasEdited] = useState(Boolean(postId));
   const [hydrated, setHydrated] = useState(false);
@@ -327,7 +388,193 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   const autoSaveTimerRef = useRef<number | null>(null);
   const savingTimerRef = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const editorCopy = dictionary.editor;
+  const localeCopy = useMemo(
+    () =>
+      locale === "zh-CN"
+        ? {
+          translationSourceHint: "源文本",
+          translationTwHint: "自动繁体",
+          translationEnHint: "自动英文",
+          regenerateCurrent: (value: EditorLocale) => `重新生成${value === "zh-TW" ? "繁体" : "英文"}版本`,
+          sourceNoRegen: "源语言无需重新生成。",
+          regenerated: (value: EditorLocale) => `${value === "zh-TW" ? "繁体" : "英文"}版本已重新生成。`,
+          regenerateFailed: "重新生成翻译失败。",
+          saveFailed: "无法保存更改。",
+          publishFailed: "无法发布更改。",
+          aiSummaryFailed: "AI 摘要生成失败。",
+          aiTagsFailed: "AI 标签生成失败。",
+          titlePlaceholder: "输入文章标题...",
+          subtitlePlaceholder: "输入编辑型副标题...",
+          excerptPlaceholder: "输入用于列表与推荐的摘要...",
+          slugPlaceholder: "article-url-slug",
+          tagsPlaceholder: "建筑, 写作, 影像",
+          coverPlaceholder: "https://...",
+          publishAtPlaceholder: "2026-07-01T09:00",
+          featuredHint: "显示在首页与编辑精选中",
+          pinnedHint: "固定在普通排序之前",
+          seoTitlePlaceholder: "留空则默认使用标题",
+          seoDescriptionPlaceholder: "输入搜索摘要...",
+          translationLocks: "翻译锁定",
+          translationLocksHint: "繁体中文由简体自动生成；英文由 AI 自动生成。解锁后为 Manual Override，保存简体时不会覆盖人工内容。",
+          autoTranslation: "Auto Translation",
+          manualOverride: "Manual Override",
+          restoreAutoSync: "恢复自动同步",
+          uploadCover: "上传封面",
+          replaceCover: "替换封面",
+          deleteCover: "删除封面",
+          coverDisplayMode: "Cover Display Mode",
+          coverFocalPoint: "焦点位置",
+          coverUploadFailed: "封面上传失败。",
+          imageUpload: "上传图片",
+          imageUploadFailed: "图片上传失败。",
+          imageAlt: "Alt 文案",
+          imageCaption: "Caption",
+          imageInsertMode: "插入方式",
+          imageInline: "Inline Image",
+          imageFullWidth: "Full-width Image",
+          imageFigure: "Figure With Caption",
+          chooseImage: "选择图片",
+          insertImage: "上传并插入",
+          cancel: "取消",
+          publishing: "Publishing...",
+          publishedDone: "Published ✓",
+          publishedSuccessfully: "Article Published Successfully",
+          viewArticle: "查看文章",
+          copyPublishedLink: "复制链接",
+          continueEditing: "继续编辑",
+          googleCrawlable: "Google 已可抓取",
+          aiTools: "AI 工具",
+          generateSummary: "生成摘要",
+          generateTags: "生成标签",
+        }
+        : locale === "zh-TW"
+          ? {
+            translationSourceHint: "源文本",
+            translationTwHint: "自動繁體",
+            translationEnHint: "自動英文",
+            regenerateCurrent: (value: EditorLocale) => `重新生成${value === "zh-TW" ? "繁體" : "英文"}版本`,
+            sourceNoRegen: "源語言無需重新生成。",
+            regenerated: (value: EditorLocale) => `${value === "zh-TW" ? "繁體" : "英文"}版本已重新生成。`,
+            regenerateFailed: "重新生成翻譯失敗。",
+            saveFailed: "無法儲存變更。",
+            publishFailed: "無法發布變更。",
+            aiSummaryFailed: "AI 摘要生成失敗。",
+            aiTagsFailed: "AI 標籤生成失敗。",
+            titlePlaceholder: "輸入文章標題...",
+            subtitlePlaceholder: "輸入編輯型副標題...",
+            excerptPlaceholder: "輸入用於列表與推薦的摘要...",
+            slugPlaceholder: "article-url-slug",
+            tagsPlaceholder: "建築, 寫作, 影像",
+            coverPlaceholder: "https://...",
+            publishAtPlaceholder: "2026-07-01T09:00",
+            featuredHint: "顯示在首頁與編輯精選中",
+            pinnedHint: "固定在一般排序之前",
+            seoTitlePlaceholder: "留空則預設使用標題",
+            seoDescriptionPlaceholder: "輸入搜尋摘要...",
+            translationLocks: "翻譯鎖定",
+            translationLocksHint: "繁體中文由簡體自動生成；英文由 AI 自動生成。解鎖後為 Manual Override，儲存簡體時不會覆蓋人工內容。",
+            autoTranslation: "Auto Translation",
+            manualOverride: "Manual Override",
+            restoreAutoSync: "恢復自動同步",
+            uploadCover: "上傳封面",
+            replaceCover: "替換封面",
+            deleteCover: "刪除封面",
+            coverDisplayMode: "Cover Display Mode",
+            coverFocalPoint: "焦點位置",
+            coverUploadFailed: "封面上傳失敗。",
+            imageUpload: "上傳圖片",
+            imageUploadFailed: "圖片上傳失敗。",
+            imageAlt: "Alt 文案",
+            imageCaption: "Caption",
+            imageInsertMode: "插入方式",
+            imageInline: "Inline Image",
+            imageFullWidth: "Full-width Image",
+            imageFigure: "Figure With Caption",
+            chooseImage: "選擇圖片",
+            insertImage: "上傳並插入",
+            cancel: "取消",
+            publishing: "Publishing...",
+            publishedDone: "Published ✓",
+            publishedSuccessfully: "Article Published Successfully",
+            viewArticle: "查看文章",
+            copyPublishedLink: "複製連結",
+            continueEditing: "繼續編輯",
+            googleCrawlable: "Google 已可抓取",
+            aiTools: "AI 工具",
+            generateSummary: "生成摘要",
+            generateTags: "生成標籤",
+          }
+          : {
+            translationSourceHint: "Source",
+            translationTwHint: "Traditional",
+            translationEnHint: "English",
+            regenerateCurrent: (value: EditorLocale) => `Regenerate ${value === "zh-TW" ? "Traditional" : "English"}`,
+            sourceNoRegen: "Source language does not need regeneration.",
+            regenerated: (value: EditorLocale) => `${value} translation regenerated.`,
+            regenerateFailed: "Unable to regenerate translation.",
+            saveFailed: "Unable to save changes.",
+            publishFailed: "Unable to publish changes.",
+            aiSummaryFailed: "AI summary failed.",
+            aiTagsFailed: "AI tags failed.",
+            titlePlaceholder: "Enter article title...",
+            subtitlePlaceholder: "Short editorial subtitle...",
+            excerptPlaceholder: "Brief summary for listings...",
+            slugPlaceholder: "article-url-slug",
+            tagsPlaceholder: "Studio, Notes, Architecture",
+            coverPlaceholder: "https://...",
+            publishAtPlaceholder: "2026-07-01T09:00",
+            featuredHint: "Displays in editorial highlights",
+            pinnedHint: "Keeps entry above normal order",
+            seoTitlePlaceholder: "Leave blank to use title",
+            seoDescriptionPlaceholder: "Search description...",
+            translationLocks: "Translation Locks",
+            translationLocksHint: "Traditional Chinese is generated from Simplified Chinese. English is generated by AI. Unlocking a field creates a Manual Override that source saves will preserve.",
+            autoTranslation: "Auto Translation",
+            manualOverride: "Manual Override",
+            restoreAutoSync: "Restore Auto Sync",
+            uploadCover: "Upload Cover",
+            replaceCover: "Replace Cover",
+            deleteCover: "Delete Cover",
+            coverDisplayMode: "Cover Display Mode",
+            coverFocalPoint: "Focal Point",
+            coverUploadFailed: "Cover upload failed.",
+            imageUpload: "Upload Image",
+            imageUploadFailed: "Image upload failed.",
+            imageAlt: "Alt Text",
+            imageCaption: "Caption",
+            imageInsertMode: "Insert Mode",
+            imageInline: "Inline Image",
+            imageFullWidth: "Full-width Image",
+            imageFigure: "Figure With Caption",
+            chooseImage: "Choose Image",
+            insertImage: "Upload And Insert",
+            cancel: "Cancel",
+            publishing: "Publishing...",
+            publishedDone: "Published ✓",
+            publishedSuccessfully: "Article Published Successfully",
+            viewArticle: "View Article",
+            copyPublishedLink: "Copy Link",
+            continueEditing: "Continue Editing",
+            googleCrawlable: "Google can crawl",
+            aiTools: "AI Tools",
+            generateSummary: "Generate Summary",
+            generateTags: "Generate Tags",
+          },
+    [locale],
+  );
+  const translationFieldLabels = useMemo<Array<{ field: TranslationField; label: string }>>(
+    () => [
+      { field: "title", label: editorCopy.title },
+      { field: "excerpt", label: editorCopy.excerpt },
+      { field: "content", label: editorCopy.markdownMdx },
+      { field: "seoTitle", label: editorCopy.seoTitle },
+      { field: "seoDescription", label: editorCopy.seoDescription },
+    ],
+    [editorCopy],
+  );
 
   const activeFields = draft.localizedFields[activeLocale];
   const activeTitle = activeFields.title || (activeLocale === "zh-CN" ? draft.title : "");
@@ -341,23 +588,13 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   const tagList = useMemo(
     () =>
       draft.tags
-        .split(",")
-        .map((tag) => tag.trim())
+        .map((tagId) => data.tags.find((tag) => tag.id === tagId || tag.slug === tagId)?.name ?? tagId)
         .filter(Boolean),
-    [draft.tags],
+    [data.tags, draft.tags],
   );
 
   const category = getCategoryById(data, draft.categoryId);
-  const knownTagNames = data.tags.map((tag) => tag.name);
-  const draftTagIds = useMemo(() => {
-    const byName = new Map(data.tags.map((tag) => [tag.name.toLowerCase(), tag.id]));
-    return draft.tags
-      .split(",")
-      .map((tag) => tag.trim().toLowerCase())
-      .filter(Boolean)
-      .map((tag) => byName.get(tag) ?? slugifyTitle(tag));
-  }, [data.tags, draft.tags]);
-
+  const brandText = brand.logoText || brand.brandName;
   const previewSource = {
     title: activeTitle || draft.title,
     excerpt: activeExcerpt || draft.subtitle || draft.excerpt || editorCopy.newStudioNote,
@@ -366,6 +603,8 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   const previewBlocks = useMemo(() => parseMarkdownBlocks(previewSource.content), [previewSource.content]);
   const previewReadingMinutes = useMemo(() => getReadingMinutes(previewSource.content), [previewSource.content]);
   const previewReadingTime = useMemo(() => editorCopy.minRead(previewReadingMinutes), [editorCopy, previewReadingMinutes]);
+  const coverObjectFit = draft.coverDisplayMode === "cover" ? "cover" : "contain";
+  const coverObjectPosition = `${draft.coverFocalX}% ${draft.coverFocalY}%`;
 
   useEffect(() => {
     if (!isReady) {
@@ -375,8 +614,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
     if (initializedKeyRef.current === key) {
       return;
     }
-    const tagNames = post ? getPostTags(data, post).map((tag) => tag.name).join(", ") : "";
-    const nextDraft = createInitialDraft(post, tagNames);
+    const nextDraft = createInitialDraft(post, post?.tagIds ?? []);
     setDraft(nextDraft);
     lastSavedRef.current = JSON.stringify(nextDraft);
     setSaveState("Saved");
@@ -407,13 +645,13 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
       savingTimerRef.current = window.setTimeout(() => {
         void (async () => {
           try {
-            const result = await updatePost(draftToPost(draft, draftTagIds));
+            const result = await updatePost(draftToPost(draft));
             lastSavedRef.current = serialized;
             setSaveError("");
             setTranslationNotice(result.warnings.join(" "));
             setSaveState("Saved");
           } catch (requestError) {
-            setSaveError(requestError instanceof Error ? requestError.message : "Unable to save changes.");
+            setSaveError(requestError instanceof Error ? requestError.message : localeCopy.saveFailed);
             setSaveState("Unsaved");
           } finally {
             autoSaveTimerRef.current = null;
@@ -431,7 +669,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
         window.clearTimeout(savingTimerRef.current);
       }
     };
-  }, [draft, draftTagIds, hydrated, updatePost]);
+  }, [draft, hydrated, localeCopy.saveFailed, updatePost]);
 
   useEffect(() => {
     function warnBeforeLeave(event: BeforeUnloadEvent) {
@@ -508,6 +746,11 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
       return;
     }
 
+    if (command === "image") {
+      setIsImageDialogOpen(true);
+      return;
+    }
+
     const result = applyMarkdownCommand(textarea.value, { start: textarea.selectionStart, end: textarea.selectionEnd }, command);
     textarea.focus();
     textarea.setSelectionRange(result.replacementStart, result.replacementEnd);
@@ -521,6 +764,20 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
     window.requestAnimationFrame(() => {
       textarea.focus();
       textarea.setSelectionRange(result.selectionStart, result.selectionEnd);
+    });
+  }
+
+  async function createEditorTag(name: string): Promise<Tag> {
+    const trimmedName = name.trim();
+    const existing = data.tags.find((tag) => tag.name.toLowerCase() === trimmedName.toLowerCase() || tag.slug === slugifyTitle(trimmedName));
+    if (existing) {
+      return existing;
+    }
+
+    return await addTag({
+      id: slugifyTitle(trimmedName),
+      name: trimmedName,
+      slug: slugifyTitle(trimmedName),
     });
   }
 
@@ -541,6 +798,107 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
     setSaveState("Unsaved");
   }
 
+  function restoreAutoSync(locale: EditorLocale) {
+    if (locale === "zh-CN") {
+      return;
+    }
+    setDraft((current) => ({
+      ...current,
+      translationLocks: {
+        ...current.translationLocks,
+        [locale]: {},
+      },
+    }));
+    setSaveState("Unsaved");
+  }
+
+  async function handleCoverUpload(file: File) {
+    const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+    if (!allowedTypes.has(file.type) || file.size > 20 * 1024 * 1024) {
+      setSaveError(localeCopy.coverUploadFailed);
+      return;
+    }
+
+    setIsCoverUploading(true);
+    setSaveState("Saving");
+    try {
+      const [uploaded, metrics] = await Promise.all([uploadAsset(file, "covers"), readImageMetrics(file)]);
+      setDraft((current) => ({
+        ...current,
+        coverImage: uploaded.url,
+        coverWidth: metrics.width,
+        coverHeight: metrics.height,
+        coverAspectRatio: metrics.aspectRatio,
+      }));
+      setSaveError("");
+      setSaveState("Unsaved");
+    } catch (requestError) {
+      setSaveError(requestError instanceof Error ? requestError.message : localeCopy.coverUploadFailed);
+      setSaveState("Unsaved");
+    } finally {
+      setIsCoverUploading(false);
+    }
+  }
+
+  function insertMarkdownAtCursor(markdown: string) {
+    const textarea = textareaRef.current;
+    const value = textarea?.value ?? activeContent;
+    const start = textarea?.selectionStart ?? value.length;
+    const end = textarea?.selectionEnd ?? value.length;
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    const prefix = before && !before.endsWith("\n\n") ? (before.endsWith("\n") ? "\n" : "\n\n") : "";
+    const suffix = after && !after.startsWith("\n\n") ? (after.startsWith("\n") ? "\n" : "\n\n") : "";
+    const insertion = `${prefix}${markdown}${suffix}`;
+    const nextValue = `${before}${insertion}${after}`;
+    const cursor = before.length + insertion.length;
+
+    updateLocalizedField("content", nextValue);
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(cursor, cursor);
+    });
+  }
+
+  function markdownForUploadedImage(url: string) {
+    const alt = safeMarkdownAlt(imageAltText);
+    if (imageInsertMode === "figure" && imageCaption.trim()) {
+      return `![${alt}](${url})\n\n_${imageCaption.trim()}_`;
+    }
+    if (imageInsertMode === "fullWidth") {
+      return `![${alt}](${url} "full-width")`;
+    }
+    return `![${alt}](${url})`;
+  }
+
+  async function handlePostImageUpload() {
+    const file = imageUploadFile;
+    const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+    if (!file || !allowedTypes.has(file.type) || file.size > 20 * 1024 * 1024) {
+      setSaveError(localeCopy.imageUploadFailed);
+      return;
+    }
+
+    setIsImageUploading(true);
+    setSaveState("Saving");
+    try {
+      const uploaded = await uploadAsset(file, postImageFolder());
+      insertMarkdownAtCursor(markdownForUploadedImage(uploaded.url));
+      setImageUploadFile(null);
+      setImageAltText("");
+      setImageCaption("");
+      setImageInsertMode("inline");
+      setIsImageDialogOpen(false);
+      setSaveError("");
+      setSaveState("Unsaved");
+    } catch (requestError) {
+      setSaveError(requestError instanceof Error ? requestError.message : localeCopy.imageUploadFailed);
+      setSaveState("Unsaved");
+    } finally {
+      setIsImageUploading(false);
+    }
+  }
+
   async function persistDraft(nextDraft = draft, generateTranslations = false) {
     if (autoSaveTimerRef.current) {
       window.clearTimeout(autoSaveTimerRef.current);
@@ -553,8 +911,8 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
 
     setSaveState("Saving");
     try {
-      const result = await updatePost(draftToPost(nextDraft, draftTagIds), { generateTranslations });
-      const savedDraft = generateTranslations ? createInitialDraft(result.data, nextDraft.tags) : nextDraft;
+      const result = await updatePost(draftToPost(nextDraft), { generateTranslations });
+      const savedDraft = generateTranslations ? createInitialDraft(result.data, result.data.tagIds.length ? result.data.tagIds : nextDraft.tags) : nextDraft;
       if (generateTranslations) {
         setDraft(savedDraft);
       }
@@ -563,7 +921,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
       setTranslationNotice(result.warnings.join(" "));
       setSaveState("Saved");
     } catch (requestError) {
-      setSaveError(requestError instanceof Error ? requestError.message : "Unable to save changes.");
+      setSaveError(requestError instanceof Error ? requestError.message : localeCopy.saveFailed);
       setSaveState("Unsaved");
     }
   }
@@ -575,6 +933,10 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   }
 
   async function publishNow() {
+    if (publishState === "publishing") {
+      return;
+    }
+
     const nextDraft: EditorDraft = {
       ...draft,
       status: "published",
@@ -590,19 +952,37 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
       savingTimerRef.current = null;
     }
     setSaveState("Saving");
+    setPublishState("publishing");
     try {
-      const result = await updatePost(draftToPost(nextDraft, draftTagIds), { generateTranslations: true });
-      const savedDraft = createInitialDraft(result.data, nextDraft.tags);
+      const result = await updatePost(draftToPost(nextDraft), { generateTranslations: true });
+      const savedDraft = createInitialDraft(result.data, result.data.tagIds.length ? result.data.tagIds : nextDraft.tags);
       setDraft(savedDraft);
       lastSavedRef.current = JSON.stringify(savedDraft);
       setSaveError("");
       setTranslationNotice(result.warnings.join(" "));
       setSaveState("Saved");
+      const segment = localeToSegment(locale);
+      const url = `https://journal.lewislee.online/${segment}/journal/${savedDraft.slug}`;
+      setPublishedInfo({ title: savedDraft.title || editorCopy.untitledEditorial, publishedAt: savedDraft.publishedAt, url });
+      setPublishState("published");
+      window.setTimeout(() => setPublishState("idle"), 5000);
     } catch (requestError) {
-      setSaveError(requestError instanceof Error ? requestError.message : "Unable to publish changes.");
+      setSaveError(requestError instanceof Error ? requestError.message : localeCopy.publishFailed);
       setSaveState("Unsaved");
+      setPublishState("idle");
     }
   }
+
+  useEffect(() => {
+    function publishFromTopbar() {
+      void publishNow();
+    }
+
+    window.addEventListener("admin:publish-current-post", publishFromTopbar);
+    return () => {
+      window.removeEventListener("admin:publish-current-post", publishFromTopbar);
+    };
+  });
 
   async function unpublish() {
     const nextDraft: EditorDraft = { ...draft, status: "draft", publishedAt: "" };
@@ -612,23 +992,23 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
 
   async function regenerateCurrentTranslation() {
     if (activeLocale === "zh-CN") {
-      setTranslationNotice("Source language does not need regeneration.");
+      setTranslationNotice(localeCopy.sourceNoRegen);
       return;
     }
     setSaveState("Saving");
     try {
-      const result = await updatePost(draftToPost(draft, draftTagIds), {
+      const result = await updatePost(draftToPost(draft), {
         generateTranslations: true,
         regenerateLocales: [activeLocale],
       });
-      const savedDraft = createInitialDraft(result.data, draft.tags);
+      const savedDraft = createInitialDraft(result.data, result.data.tagIds.length ? result.data.tagIds : draft.tags);
       setDraft(savedDraft);
       lastSavedRef.current = JSON.stringify(savedDraft);
       setSaveError("");
-      setTranslationNotice(result.warnings.join(" ") || `${activeLocale} translation regenerated.`);
+      setTranslationNotice(result.warnings.join(" ") || localeCopy.regenerated(activeLocale));
       setSaveState("Saved");
     } catch (requestError) {
-      setSaveError(requestError instanceof Error ? requestError.message : "Unable to regenerate translation.");
+      setSaveError(requestError instanceof Error ? requestError.message : localeCopy.regenerateFailed);
       setSaveState("Unsaved");
     }
   }
@@ -642,7 +1022,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
         body: JSON.stringify({ title: draft.title, content: draft.content }),
       });
       const payload = (await response.json()) as { data?: { summary?: string; tldr?: string; keyTakeaways?: string[]; readingDifficulty?: string } };
-      if (!response.ok) throw new Error("AI summary failed.");
+      if (!response.ok) throw new Error(localeCopy.aiSummaryFailed);
       const summary = payload.data?.summary || payload.data?.tldr || draft.excerpt;
       const nextDraft = {
         ...draft,
@@ -652,7 +1032,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
       setDraft(nextDraft);
       setSaveState("Unsaved");
     } catch (requestError) {
-      setSaveError(requestError instanceof Error ? requestError.message : "AI summary failed.");
+      setSaveError(requestError instanceof Error ? requestError.message : localeCopy.aiSummaryFailed);
       setSaveState("Unsaved");
     }
   }
@@ -666,20 +1046,107 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
         body: JSON.stringify({ content: `${draft.title}\n\n${draft.content}` }),
       });
       const payload = (await response.json()) as { data?: { tags?: string[] } };
-      if (!response.ok) throw new Error("AI tags failed.");
+      if (!response.ok) throw new Error(localeCopy.aiTagsFailed);
       const tags = payload.data?.tags ?? [];
       if (tags.length > 0) {
-        setDraft((current) => ({ ...current, tags: tags.join(", ") }));
+        const createdTags = await Promise.all(tags.map((tag) => createEditorTag(tag)));
+        setDraft((current) => ({
+          ...current,
+          tags: [...new Set([...current.tags, ...createdTags.map((tag) => tag.id)])],
+        }));
       }
       setSaveState("Unsaved");
     } catch (requestError) {
-      setSaveError(requestError instanceof Error ? requestError.message : "AI tags failed.");
+      setSaveError(requestError instanceof Error ? requestError.message : localeCopy.aiTagsFailed);
       setSaveState("Unsaved");
     }
   }
 
   return (
-    <main className="h-auto overflow-visible px-margin-mobile pb-6 md:h-[calc(100vh-6rem)] md:overflow-hidden md:px-margin-desktop">
+    <main className="h-auto overflow-visible px-margin-mobile pb-6 md:px-margin-desktop xl:h-[calc(100vh-6rem)] xl:overflow-hidden">
+      <input
+        ref={coverInputRef}
+        accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"
+        className="hidden"
+        type="file"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.currentTarget.value = "";
+          if (file) void handleCoverUpload(file);
+        }}
+      />
+      <input
+        ref={imageInputRef}
+        accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"
+        className="hidden"
+        type="file"
+        onChange={(event) => {
+          const file = event.target.files?.[0] ?? null;
+          event.currentTarget.value = "";
+          setImageUploadFile(file);
+          if (file && !imageAltText) {
+            setImageAltText(file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
+          }
+        }}
+      />
+      {isImageDialogOpen ? (
+        <div className="fixed inset-0 z-[80] grid place-items-center overflow-y-auto bg-background/70 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-[calc(100vh-3rem)] w-full max-w-xl overflow-y-auto border border-outline-variant/20 bg-surface-container-low p-5 shadow-2xl md:p-6">
+            <div className="mb-6 flex items-start justify-between gap-6">
+              <div>
+                <h2 className="font-serif text-headline-md text-on-surface">{localeCopy.imageUpload}</h2>
+                <p className="mt-2 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">JPG / PNG / WEBP / AVIF · 20MB</p>
+              </div>
+              <button className="text-on-surface-variant transition hover:text-on-surface" type="button" onClick={() => setIsImageDialogOpen(false)}>
+                ×
+              </button>
+            </div>
+            <div className="space-y-6">
+              <div>
+                <span className="label-mono mb-3 block">{localeCopy.chooseImage}</span>
+                <button
+                  className="flex w-full items-center justify-between border border-dashed border-outline-variant/30 px-4 py-4 text-left text-body-md text-on-surface-variant transition hover:border-outline-variant/50 hover:text-on-surface"
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  <span>{imageUploadFile ? imageUploadFile.name : localeCopy.chooseImage}</span>
+                  <Upload aria-hidden size={16} />
+                </button>
+              </div>
+              <AdminInput label={localeCopy.imageAlt} value={imageAltText} onChange={(event) => setImageAltText(event.target.value)} />
+              <AdminInput label={localeCopy.imageCaption} value={imageCaption} onChange={(event) => setImageCaption(event.target.value)} />
+              <div>
+                <span className="label-mono mb-3 block">{localeCopy.imageInsertMode}</span>
+                <div className="grid gap-2 md:grid-cols-3">
+                  {([
+                    ["inline", localeCopy.imageInline],
+                    ["fullWidth", localeCopy.imageFullWidth],
+                    ["figure", localeCopy.imageFigure],
+                  ] as Array<[ImageInsertMode, string]>).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      className="border border-outline-variant/20 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-on-surface-variant transition data-[active=true]:bg-on-surface data-[active=true]:text-background"
+                      data-active={imageInsertMode === mode}
+                      type="button"
+                      onClick={() => setImageInsertMode(mode)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-3">
+                <AdminButton variant="ghost" onClick={() => setIsImageDialogOpen(false)}>
+                  {localeCopy.cancel}
+                </AdminButton>
+                <AdminButton disabled={!imageUploadFile || isImageUploading} variant="primary" onClick={() => void handlePostImageUpload()}>
+                  {isImageUploading ? localeCopy.imageUpload : localeCopy.insertImage}
+                </AdminButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <section className="mb-6 flex flex-col justify-between gap-4 border-b border-outline-variant/10 pb-6 lg:flex-row lg:items-center">
         <div className="flex flex-wrap items-center gap-4">
           <h1 className="font-serif text-headline-md text-on-surface">{isNew ? editorCopy.newEditorialEntry : draft.localizedFields["zh-CN"].title || editorCopy.untitledEditorial}</h1>
@@ -701,12 +1168,38 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
               {editorCopy.unpublish}
             </AdminButton>
           ) : null}
-          <AdminButton variant="primary" onClick={() => void publishNow()}>
+          <AdminButton disabled={publishState === "publishing"} variant="primary" onClick={() => void publishNow()}>
             <Send aria-hidden size={15} />
-            {editorCopy.publish}
+            {publishState === "publishing" ? localeCopy.publishing : publishState === "published" ? localeCopy.publishedDone : editorCopy.publish}
           </AdminButton>
         </div>
       </section>
+      {publishedInfo ? (
+        <div className="mb-4 border border-primary/30 bg-primary/10 px-5 py-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-mono text-label-mono uppercase tracking-widest text-primary">✓ {localeCopy.publishedSuccessfully}</p>
+              <p className="mt-2 font-serif text-headline-md text-on-surface">{publishedInfo.title}</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">
+                {publishedInfo.publishedAt} · {localeCopy.googleCrawlable}: {publishedInfo.url}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <AdminButton variant="ghost" onClick={() => window.open(publishedInfo.url, "_blank", "noopener,noreferrer")}>
+                <ExternalLink aria-hidden size={14} />
+                {localeCopy.viewArticle}
+              </AdminButton>
+              <AdminButton variant="ghost" onClick={() => void navigator.clipboard?.writeText(publishedInfo.url)}>
+                <Copy aria-hidden size={14} />
+                {localeCopy.copyPublishedLink}
+              </AdminButton>
+              <AdminButton variant="ghost" onClick={() => setPublishedInfo(null)}>
+                {localeCopy.continueEditing}
+              </AdminButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {saveError || error || translationNotice ? (
         <div className="mb-4 border border-secondary/30 bg-secondary/10 px-4 py-3 font-mono text-label-mono uppercase tracking-widest text-secondary">
           {saveError || error || translationNotice}
@@ -729,7 +1222,9 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
                 onClick={() => setActiveLocale(item.locale)}
               >
                 <span className="block font-mono text-[10px] uppercase tracking-[0.22em]">{item.label}</span>
-                <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.18em] opacity-70">{item.hint}</span>
+                <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.18em] opacity-70">
+                  {item.locale === "zh-CN" ? localeCopy.translationSourceHint : item.locale === "zh-TW" ? localeCopy.translationTwHint : localeCopy.translationEnHint}
+                </span>
               </button>
             ))}
           </div>
@@ -737,25 +1232,25 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
         {activeLocale !== "zh-CN" ? (
           <AdminButton className="px-4 py-2" variant="ghost" onClick={() => void regenerateCurrentTranslation()}>
             <RotateCcw aria-hidden size={14} />
-            Regenerate {activeLocale === "zh-TW" ? "Traditional" : "English"}
+            {localeCopy.regenerateCurrent(activeLocale)}
           </AdminButton>
         ) : (
           <span className="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">{editorCopy.sourceLanguage}</span>
         )}
       </section>
 
-      <section className="grid h-auto grid-cols-1 overflow-hidden border border-outline-variant/10 bg-background md:h-[calc(100%-6rem)] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_420px]">
+      <section className="grid h-auto grid-cols-1 overflow-hidden border border-outline-variant/10 bg-background lg:grid-cols-[300px_minmax(0,1fr)] xl:h-[calc(100%-6rem)] xl:grid-cols-[300px_minmax(0,1fr)_420px]">
         <aside className="max-h-none overflow-y-auto border-b border-outline-variant/10 bg-surface-container-lowest p-6 lg:max-h-full lg:border-b-0 lg:border-r">
           <div className="space-y-7">
             <h2 className="border-b border-outline-variant/20 pb-2 font-mono text-label-mono uppercase tracking-widest text-primary">{editorCopy.documentSettings}</h2>
-            <AdminTextarea label={`${editorCopy.title} - ${activeLocale}`} placeholder="Enter article title..." rows={2} value={activeTitle} onChange={(event) => updateLocalizedField("title", event.target.value)} />
+            <AdminTextarea label={`${editorCopy.title} - ${activeLocale}`} placeholder={localeCopy.titlePlaceholder} rows={2} value={activeTitle} onChange={(event) => updateLocalizedField("title", event.target.value)} />
             {activeLocale === "zh-CN" ? (
-              <AdminTextarea label={editorCopy.subtitle} placeholder="Short editorial subtitle..." rows={2} value={draft.subtitle} onChange={(event) => updateDraft("subtitle", event.target.value)} />
+              <AdminTextarea label={editorCopy.subtitle} placeholder={localeCopy.subtitlePlaceholder} rows={2} value={draft.subtitle} onChange={(event) => updateDraft("subtitle", event.target.value)} />
             ) : null}
-            <AdminTextarea label={`${editorCopy.excerpt} - ${activeLocale}`} placeholder="Brief summary for listings..." rows={3} value={activeExcerpt} onChange={(event) => updateLocalizedField("excerpt", event.target.value)} />
+            <AdminTextarea label={`${editorCopy.excerpt} - ${activeLocale}`} placeholder={localeCopy.excerptPlaceholder} rows={3} value={activeExcerpt} onChange={(event) => updateLocalizedField("excerpt", event.target.value)} />
             <AdminInput
               label={editorCopy.slug}
-              placeholder="article-url-slug"
+              placeholder={localeCopy.slugPlaceholder}
               value={draft.slug}
               onChange={(event) => {
                 setSlugWasEdited(true);
@@ -772,15 +1267,72 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
                 ))}
               </select>
             </label>
-            <AdminInput label={editorCopy.tags} list="cms-tags" placeholder="Studio, Notes, Architecture" value={draft.tags} onChange={(event) => updateDraft("tags", event.target.value)} />
-            <datalist id="cms-tags">
-              {knownTagNames.map((tag) => (
-                <option key={tag} value={tag} />
-              ))}
-            </datalist>
-            <AdminInput label={editorCopy.coverImage} placeholder="https://..." value={draft.coverImage} onChange={(event) => updateDraft("coverImage", event.target.value)} />
-            <div className="h-32 overflow-hidden border border-dashed border-outline-variant/30 bg-surface">
-              <div className="h-full bg-cover bg-center grayscale" style={{ backgroundImage: `url("${draft.coverImage}")` }} />
+            <TagMultiSelect
+              label={editorCopy.tags}
+              placeholder={localeCopy.tagsPlaceholder}
+              selectedIds={draft.tags}
+              tags={data.tags}
+              onChange={(tagIds) => updateDraft("tags", tagIds)}
+              onCreateTag={createEditorTag}
+            />
+            <div className="space-y-4 border-t border-outline-variant/10 pt-4">
+              <AdminInput label={editorCopy.coverImage} placeholder={localeCopy.coverPlaceholder} value={draft.coverImage} onChange={(event) => updateDraft("coverImage", event.target.value)} />
+              <div className="flex flex-wrap gap-2">
+                <AdminButton className="px-3 py-2" variant="ghost" onClick={() => coverInputRef.current?.click()}>
+                  <Upload aria-hidden size={14} />
+                  {draft.coverImage ? localeCopy.replaceCover : localeCopy.uploadCover}
+                </AdminButton>
+                {draft.coverImage ? (
+                  <AdminButton className="px-3 py-2" variant="ghost" onClick={() => {
+                    updateDraft("coverImage", "");
+                    updateDraft("coverWidth", null);
+                    updateDraft("coverHeight", null);
+                    updateDraft("coverAspectRatio", null);
+                  }}>
+                    <Trash2 aria-hidden size={14} />
+                    {localeCopy.deleteCover}
+                  </AdminButton>
+                ) : null}
+              </div>
+              <label className="block">
+                <FieldLabel>{localeCopy.coverDisplayMode}</FieldLabel>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["cover", "contain", "original"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      className={cn("border border-outline-variant/20 px-3 py-2 font-mono text-[10px] uppercase tracking-widest", draft.coverDisplayMode === mode ? "bg-primary text-background" : "text-on-surface-variant")}
+                      type="button"
+                      onClick={() => updateDraft("coverDisplayMode", mode)}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </label>
+              <div>
+                <FieldLabel>{localeCopy.coverFocalPoint}</FieldLabel>
+                <div className="grid gap-3">
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">
+                    X {draft.coverFocalX}%
+                    <input className="mt-2 w-full accent-primary" max={100} min={0} type="range" value={draft.coverFocalX} onChange={(event) => updateDraft("coverFocalX", Number(event.target.value))} />
+                  </label>
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">
+                    Y {draft.coverFocalY}%
+                    <input className="mt-2 w-full accent-primary" max={100} min={0} type="range" value={draft.coverFocalY} onChange={(event) => updateDraft("coverFocalY", Number(event.target.value))} />
+                  </label>
+                </div>
+              </div>
+              <div className="h-32 overflow-hidden border border-dashed border-outline-variant/30 bg-surface">
+                {draft.coverImage ? (
+                  <img alt="" className="h-full w-full grayscale" src={draft.coverImage} style={{ objectFit: coverObjectFit, objectPosition: coverObjectPosition }} />
+                ) : null}
+              </div>
+              {isCoverUploading ? <p className="label-mono text-primary">{localeCopy.uploadCover}</p> : null}
+              {draft.coverWidth && draft.coverHeight ? (
+                <p className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">
+                  {draft.coverWidth} × {draft.coverHeight} / {draft.coverAspectRatio}
+                </p>
+              ) : null}
             </div>
             <label className="block">
               <FieldLabel>{editorCopy.status}</FieldLabel>
@@ -790,19 +1342,20 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
                 <option className="bg-surface" value="scheduled">{editorCopy.scheduled}</option>
               </select>
             </label>
-            <AdminInput label={editorCopy.publishedAt} placeholder="2026-07-01T09:00" type="datetime-local" value={draft.publishedAt} onChange={(event) => updateDraft("publishedAt", event.target.value)} />
-            <ToggleField checked={draft.featured} hint="Displays in editorial highlights" label={editorCopy.featured} onChange={(checked) => updateDraft("featured", checked)} />
-            <ToggleField checked={draft.pinned} hint="Keeps entry above normal order" label={editorCopy.pinned} onChange={(checked) => updateDraft("pinned", checked)} />
+            <AdminInput label={editorCopy.publishedAt} placeholder={localeCopy.publishAtPlaceholder} type="datetime-local" value={draft.publishedAt} onChange={(event) => updateDraft("publishedAt", event.target.value)} />
+            <ToggleField checked={draft.featured} hint={localeCopy.featuredHint} label={editorCopy.featured} onChange={(checked) => updateDraft("featured", checked)} />
+            <ToggleField checked={draft.pinned} hint={localeCopy.pinnedHint} label={editorCopy.pinned} onChange={(checked) => updateDraft("pinned", checked)} />
             <div className="border-t border-outline-variant/10 pt-4">
               <h2 className="mb-4 font-mono text-label-mono uppercase tracking-widest text-primary">{editorCopy.seoOptions}</h2>
               <div className="space-y-7">
-                <AdminInput label={`${editorCopy.seoTitle} - ${activeLocale}`} placeholder="Leave blank to use title" value={activeSeoTitle} onChange={(event) => updateLocalizedField("seoTitle", event.target.value)} />
-                <AdminTextarea label={`${editorCopy.seoDescription} - ${activeLocale}`} placeholder="Search description..." rows={3} value={activeSeoDescription} onChange={(event) => updateLocalizedField("seoDescription", event.target.value)} />
+                <AdminInput label={`${editorCopy.seoTitle} - ${activeLocale}`} placeholder={localeCopy.seoTitlePlaceholder} value={activeSeoTitle} onChange={(event) => updateLocalizedField("seoTitle", event.target.value)} />
+                <AdminTextarea label={`${editorCopy.seoDescription} - ${activeLocale}`} placeholder={localeCopy.seoDescriptionPlaceholder} rows={3} value={activeSeoDescription} onChange={(event) => updateLocalizedField("seoDescription", event.target.value)} />
               </div>
             </div>
             {activeLocale !== "zh-CN" ? (
               <div className="border-t border-outline-variant/10 pt-4">
-                <h2 className="mb-4 font-mono text-label-mono uppercase tracking-widest text-primary">Translation Locks</h2>
+                <h2 className="mb-4 font-mono text-label-mono uppercase tracking-widest text-primary">{localeCopy.translationLocks}</h2>
+                <p className="mb-4 text-sm leading-6 text-on-surface-variant">{localeCopy.translationLocksHint}</p>
                 <div className="space-y-2">
                   {translationFieldLabels.map((item) => {
                     const locked = Boolean(draft.translationLocks[activeLocale]?.[item.field]);
@@ -817,31 +1370,35 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
                         onClick={() => toggleTranslationLock(activeLocale, item.field)}
                       >
                         <span className="font-mono text-[10px] uppercase tracking-[0.22em]">{item.label}</span>
-                        {locked ? <Lock aria-hidden size={14} /> : <Unlock aria-hidden size={14} />}
+                        <span className="flex items-center gap-2">
+                          <span>{locked ? localeCopy.manualOverride : localeCopy.autoTranslation}</span>
+                          {locked ? <Lock aria-hidden size={14} /> : <Unlock aria-hidden size={14} />}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
-                <p className="mt-3 font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">
-                  Locked fields are safe from AI regeneration.
-                </p>
+                <AdminButton className="mt-4 px-3 py-2" variant="ghost" onClick={() => restoreAutoSync(activeLocale)}>
+                  <RotateCcw aria-hidden size={14} />
+                  {localeCopy.restoreAutoSync}
+                </AdminButton>
               </div>
             ) : null}
             <div className="border-t border-outline-variant/10 pt-4">
-              <h2 className="mb-4 font-mono text-label-mono uppercase tracking-widest text-primary">AI Tools</h2>
+              <h2 className="mb-4 font-mono text-label-mono uppercase tracking-widest text-primary">{localeCopy.aiTools}</h2>
               <div className="grid gap-3">
                 <AdminButton variant="ghost" onClick={() => void applyAiSummary()}>
-                  Generate Summary
+                  {localeCopy.generateSummary}
                 </AdminButton>
                 <AdminButton variant="ghost" onClick={() => void applyAiTags()}>
-                  Generate Tags
+                  {localeCopy.generateTags}
                 </AdminButton>
               </div>
             </div>
           </div>
         </aside>
 
-        <section className="flex min-h-[720px] flex-col bg-background md:min-h-0">
+        <section className="flex min-h-[58vh] flex-col bg-background md:min-h-[620px] xl:min-h-0">
           <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-outline-variant/10 bg-surface-container-lowest/50 px-4 text-on-surface-variant md:px-6">
             {toolbarItems.map((item) => {
               const Icon = item.icon;
@@ -850,7 +1407,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
                 <button
                   key={item.command}
                   aria-label={label}
-                  className={cn("shrink-0 p-2 transition hover:text-primary focus:outline-none focus:ring-1 focus:ring-outline-variant/40", item.divider ? "ml-2 border-l border-outline-variant/20 pl-4" : "")}
+                  className={cn("grid size-10 shrink-0 place-items-center transition hover:text-primary focus:outline-none focus:ring-1 focus:ring-outline-variant/40", item.divider ? "ml-2 border-l border-outline-variant/20 pl-4" : "")}
                   title={label}
                   type="button"
                   onMouseDown={(event) => {
@@ -919,7 +1476,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
               <h2 className="mb-6 font-serif text-display-lg leading-tight text-on-background">{previewSource.title || editorCopy.untitledEditorial}</h2>
               <p className="mb-6 text-body-lg italic text-on-surface-variant">{previewSource.excerpt}</p>
               <div className="flex flex-wrap items-center gap-3 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">
-                <span>Noah. Studio</span>
+                <span>{brandText}</span>
                 <span className="size-1 rounded-full bg-outline-variant" />
                 <span>{draft.publishedAt || editorCopy.unscheduled}</span>
                 <span className="size-1 rounded-full bg-outline-variant" />
@@ -927,7 +1484,9 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
               </div>
             </header>
             <div className="relative mb-10 h-72 overflow-hidden bg-surface-container-low">
-              <div className="h-full w-full bg-cover bg-center grayscale" style={{ backgroundImage: `url("${draft.coverImage}")` }} />
+              {draft.coverImage ? (
+                <img alt="" className="h-full w-full grayscale" src={draft.coverImage} style={{ objectFit: coverObjectFit, objectPosition: coverObjectPosition }} />
+              ) : null}
               <div className="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent" />
             </div>
             <div className="px-6 md:px-8">

@@ -73,7 +73,9 @@ Cloudflare Access must protect:
 
 Allow only the owner's email:
 
-- `junqi21263@gmail.com`
+- `<owner-email>`
+
+Optionally set `ADMIN_EMAILS` as a comma-separated Pages environment variable for an additional application-level allowlist.
 
 Public APIs remain readable for published content:
 
@@ -105,4 +107,3 @@ Expected:
 - Public pages return `200`.
 - Public read APIs return JSON.
 - `/api/admin/posts` returns `401` or an Access login response when not authenticated.
-

@@ -42,13 +42,13 @@ Policy:
 - Policy name: `Owner only`
 - Action: `Allow`
 - Include selector: `Emails`
-- Email value: `junqi21263@gmail.com`
+- Email value: `<owner-email>`
 
 Expected screen:
 
 - `Applications` list shows `Nordic Editorial Journal Admin`.
 - The application domain/path shows `journal.lewislee.online/admin/*`.
-- Policy shows `Allow` and `Emails: junqi21263@gmail.com`.
+- Policy shows `Allow` and the configured owner email.
 
 Verification:
 

@@ -30,7 +30,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) =>
       settings[row.key] = parseSetting(row.value, row.value_type);
     }
 
-    return jsonResponse({ data: settings });
+    return jsonResponse(
+      { data: settings },
+      {
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+        },
+      },
+    );
   });
 
 export const onRequestPut: PagesFunction<Env> = () => methodNotAllowed();

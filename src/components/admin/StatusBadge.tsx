@@ -30,10 +30,12 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
         ? dictionary.editor.published
         : status === "scheduled"
           ? dictionary.editor.scheduled
+          : status === "archived"
+            ? dictionary.gearCms.archived
           : status;
 
   return (
-    <span className="inline-flex items-center gap-2 font-mono text-label-mono uppercase tracking-widest">
+    <span className="inline-flex whitespace-nowrap items-center gap-2 font-mono text-label-mono uppercase tracking-widest">
       <span className={`size-1.5 rounded-full ${dotClass}`} />
       <span className={textClass}>{label}</span>
     </span>

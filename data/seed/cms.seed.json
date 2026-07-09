@@ -115,7 +115,7 @@
     "site_settings": [
       {
         "key": "studioName",
-        "value": "Noah. Studio Journal",
+        "value": "Lewis Photograph Blog",
         "value_type": "string",
         "created_at": "2026-06-30T00:00:00.000Z",
         "updated_at": "2026-06-30T00:00:00.000Z"
@@ -129,7 +129,7 @@
       },
       {
         "key": "titleFormat",
-        "value": "%s | Noah. Studio Journal",
+        "value": "%s | Lewis Photograph Blog",
         "value_type": "string",
         "created_at": "2026-06-30T00:00:00.000Z",
         "updated_at": "2026-06-30T00:00:00.000Z"
@@ -138,6 +138,13 @@
         "key": "defaultDescription",
         "value": "A Nordic editorial journal for writing, photography, film, and slow design.",
         "value_type": "string",
+        "created_at": "2026-06-30T00:00:00.000Z",
+        "updated_at": "2026-06-30T00:00:00.000Z"
+      },
+      {
+        "key": "footer_json",
+        "value": "{\"zh-CN\":{\"brand\":\"Lewis.\",\"description\":\"关于旅行、摄影、影像与安静写作的个人归档。\",\"copyright\":\"© 2026 Lewis Lee.\",\"location\":\"Guangzhou · China\"},\"zh-TW\":{\"brand\":\"Lewis.\",\"description\":\"關於旅行、攝影、影像與安靜寫作的個人歸檔。\",\"copyright\":\"© 2026 Lewis Lee.\",\"location\":\"Guangzhou · China\"},\"en-US\":{\"brand\":\"Lewis.\",\"description\":\"A personal archive for travel, photography, moving images, and quiet writing.\",\"copyright\":\"© 2026 Lewis Lee.\",\"location\":\"Guangzhou · China\"}}",
+        "value_type": "json",
         "created_at": "2026-06-30T00:00:00.000Z",
         "updated_at": "2026-06-30T00:00:00.000Z"
       }

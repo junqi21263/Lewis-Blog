@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { articles, siteUrl } from "@/data/site";
+import { defaultCategories, defaultTags } from "@/data/cms";
+import { siteUrl } from "@/data/site";
 import { localePath, locales, type Locale } from "@/i18n/config";
 import { buildLanguageAlternates } from "@/i18n/metadata";
 
@@ -12,31 +13,22 @@ function routeEntry(route: string, locale: Locale, priority: number) {
     changeFrequency: "weekly" as const,
     priority,
     alternates: {
-      languages: Object.fromEntries(
-        Object.entries(buildLanguageAlternates(route)).map(([key, value]) => [key, `${siteUrl}${value}`]),
-      ),
+      languages: buildLanguageAlternates(route),
     },
   };
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticRoutes = locales.flatMap((locale) =>
-    ["", "/journal", "/gallery", "/gear", "/films", "/about"].map((route) => routeEntry(route || "/", locale, route === "" ? 1 : 0.8)),
+  const baseRoutes = locales.flatMap((locale) =>
+    ["", "/journal", "/fragments", "/gallery", "/gear", "/films", "/about"].map((route) =>
+      routeEntry(route || "/", locale, route === "" ? 1 : 0.8),
+    ),
   );
-
-  const articleRoutes = locales.flatMap((locale) =>
-    articles.map((article) => ({
-      url: `${siteUrl}${localePath(locale, `/journal/${article.slug}`)}`,
-      lastModified: new Date(article.date),
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-      alternates: {
-        languages: Object.fromEntries(
-          Object.entries(buildLanguageAlternates(`/journal/${article.slug}`)).map(([key, value]) => [key, `${siteUrl}${value}`]),
-        ),
-      },
-    })),
+  const categoryRoutes = locales.flatMap((locale) =>
+    defaultCategories.map((category) => routeEntry(`/category/${category.slug}`, locale, 0.6)),
   );
-
-  return [...staticRoutes, ...articleRoutes];
+  const tagRoutes = locales.flatMap((locale) =>
+    defaultTags.map((tag) => routeEntry(`/tag/${tag.slug}`, locale, 0.5)),
+  );
+  return [...baseRoutes, ...categoryRoutes, ...tagRoutes];
 }

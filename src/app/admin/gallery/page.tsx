@@ -113,7 +113,7 @@ async function readExif(file: File): Promise<Partial<Photo>> {
 
 export default function AdminGalleryPage() {
   const { data, error, addPhoto, updatePhoto, deletePhoto, uploadAssets } = useCmsData();
-  const { dictionary } = useAdminI18n();
+  const { dictionary, locale } = useAdminI18n();
   const [selectedId, setSelectedId] = useState<string>("");
   const selectedPhoto = useMemo(() => data.photos.find((photo) => photo.id === selectedId) ?? null, [data.photos, selectedId]);
   const [draft, setDraft] = useState<Photo | null>(selectedPhoto);
@@ -123,6 +123,21 @@ export default function AdminGalleryPage() {
   useEffect(() => {
     setDraft(selectedPhoto);
   }, [selectedPhoto]);
+
+  function localizedSaveState(value: string) {
+    if (value === "Saving") {
+      return dictionary.editor.saving;
+    }
+    if (value === "Unsaved") {
+      return dictionary.editor.unsaved;
+    }
+    return dictionary.editor.saved;
+  }
+
+  const localizedUntitledImage =
+    locale === "zh-CN" ? "未命名图片" : locale === "zh-TW" ? "未命名圖片" : "Untitled Image";
+  const aiMetadataFailed =
+    locale === "zh-CN" ? "AI 图片元数据生成失败。" : locale === "zh-TW" ? "AI 圖片中繼資料生成失敗。" : "AI image metadata failed.";
 
   function updateDraft<Key extends keyof Photo>(key: Key, value: Photo[Key]) {
     setDraft((current) => (current ? { ...current, [key]: value } : current));
@@ -183,7 +198,7 @@ export default function AdminGalleryPage() {
     const nextPhoto = {
       ...draft,
       id: draft.id || slugifyTitle(draft.title) || `photo-${Date.now()}`,
-      title: draft.title.trim() || "Untitled Image",
+      title: draft.title.trim() || localizedUntitledImage,
     };
     setSaveState("Saving");
     try {
@@ -234,7 +249,7 @@ export default function AdminGalleryPage() {
         data?: { altText?: string; caption?: string; tags?: string[]; seoDescription?: string };
       };
       if (!response.ok) {
-        throw new Error("AI image metadata failed.");
+        throw new Error(aiMetadataFailed);
       }
       setDraft((current) =>
         current
@@ -280,7 +295,7 @@ export default function AdminGalleryPage() {
         >
           <CloudUpload aria-hidden className="mb-4 text-on-surface-variant" size={36} strokeWidth={1.4} />
           <p className="font-mono text-label-mono uppercase tracking-widest text-on-surface">{dictionary.gallery.uploadImage}</p>
-          <p className="mt-2 text-sm text-on-surface-variant">{saveState}</p>
+          <p className="mt-2 text-sm text-on-surface-variant">{localizedSaveState(saveState)}</p>
         </button>
       </header>
 
@@ -329,7 +344,7 @@ export default function AdminGalleryPage() {
               <div className={`relative overflow-hidden rounded-[20px] bg-surface-container ${selectedId === photo.id ? "ring-1 ring-primary/50" : ""}`}>
                 {photo.featured ? (
                   <span className="absolute right-4 top-4 z-10 rounded-full border border-outline-variant/20 bg-background/80 px-3 py-1 font-mono text-label-mono uppercase tracking-widest text-on-surface backdrop-blur">
-                    Featured
+                    {dictionary.gallery.featuredLabel}
                   </span>
                 ) : null}
                 <div className="aspect-[4/5] w-full bg-cover bg-center grayscale" style={{ backgroundImage: `url("${photo.imageUrl}")` }} />
@@ -359,7 +374,7 @@ export default function AdminGalleryPage() {
                   <p className="label-mono mb-2">{dictionary.gallery.imageDetails}</p>
                   <h2 className="font-serif text-headline-md text-on-surface">{dictionary.gallery.assetMetadata}</h2>
                 </div>
-                <button className="text-on-surface-variant transition hover:text-on-surface" type="button" aria-label="Close image details" onClick={() => setSelectedId("")}>
+                <button className="text-on-surface-variant transition hover:text-on-surface" type="button" aria-label={dictionary.gallery.closeDetails} onClick={() => setSelectedId("")}>
                   <X aria-hidden size={20} />
                 </button>
               </div>
@@ -367,39 +382,39 @@ export default function AdminGalleryPage() {
                 <div className="aspect-square w-full bg-cover bg-center grayscale" style={draft.imageUrl ? { backgroundImage: `url("${draft.imageUrl}")` } : undefined} />
               </div>
               <div className="space-y-8">
-                <AdminInput label="Title" value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} />
-                <AdminTextarea label="Description" rows={3} value={draft.description} onChange={(event) => updateDraft("description", event.target.value)} />
-                <AdminTextarea label="Alt Text" rows={2} value={draft.altText} onChange={(event) => updateDraft("altText", event.target.value)} />
-                <AdminInput label="Image URL" value={draft.imageUrl} onChange={(event) => updateDraft("imageUrl", event.target.value)} />
+                <AdminInput label={dictionary.gallery.titleLabel} value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} />
+                <AdminTextarea label={dictionary.gallery.descriptionLabel} rows={3} value={draft.description} onChange={(event) => updateDraft("description", event.target.value)} />
+                <AdminTextarea label={dictionary.gallery.altTextLabel} rows={2} value={draft.altText} onChange={(event) => updateDraft("altText", event.target.value)} />
+                <AdminInput label={dictionary.gallery.imageUrlLabel} value={draft.imageUrl} onChange={(event) => updateDraft("imageUrl", event.target.value)} />
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-                  <AdminInput label="Location" value={draft.location} onChange={(event) => updateDraft("location", event.target.value)} />
-                  <AdminInput label="Date" type="date" value={draft.date} onChange={(event) => updateDraft("date", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.locationLabel} value={draft.location} onChange={(event) => updateDraft("location", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.dateLabel} type="date" value={draft.date} onChange={(event) => updateDraft("date", event.target.value)} />
                 </div>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-                  <AdminInput label="City" value={draft.city} onChange={(event) => updateDraft("city", event.target.value)} />
-                  <AdminInput label="Country" value={draft.country} onChange={(event) => updateDraft("country", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.cityLabel} value={draft.city} onChange={(event) => updateDraft("city", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.countryLabel} value={draft.country} onChange={(event) => updateDraft("country", event.target.value)} />
                 </div>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-                  <AdminInput label="Latitude" type="number" value={draft.latitude ?? ""} onChange={(event) => updateDraft("latitude", event.target.value ? Number(event.target.value) : null)} />
-                  <AdminInput label="Longitude" type="number" value={draft.longitude ?? ""} onChange={(event) => updateDraft("longitude", event.target.value ? Number(event.target.value) : null)} />
+                  <AdminInput label={dictionary.gallery.latitudeLabel} type="number" value={draft.latitude ?? ""} onChange={(event) => updateDraft("latitude", event.target.value ? Number(event.target.value) : null)} />
+                  <AdminInput label={dictionary.gallery.longitudeLabel} type="number" value={draft.longitude ?? ""} onChange={(event) => updateDraft("longitude", event.target.value ? Number(event.target.value) : null)} />
                 </div>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-                  <AdminInput label="Camera" value={draft.camera} onChange={(event) => updateDraft("camera", event.target.value)} />
-                  <AdminInput label="Lens" value={draft.lens} onChange={(event) => updateDraft("lens", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.cameraLabel} value={draft.camera} onChange={(event) => updateDraft("camera", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.lensLabel} value={draft.lens} onChange={(event) => updateDraft("lens", event.target.value)} />
                 </div>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-                  <AdminInput label="ISO" value={draft.iso} onChange={(event) => updateDraft("iso", event.target.value)} />
-                  <AdminInput label="Aperture" value={draft.aperture} onChange={(event) => updateDraft("aperture", event.target.value)} />
-                  <AdminInput label="Shutter Speed" value={draft.shutterSpeed} onChange={(event) => updateDraft("shutterSpeed", event.target.value)} />
-                  <AdminInput label="Focal Length" value={draft.focalLength} onChange={(event) => updateDraft("focalLength", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.isoLabel} value={draft.iso} onChange={(event) => updateDraft("iso", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.apertureLabel} value={draft.aperture} onChange={(event) => updateDraft("aperture", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.shutterSpeedLabel} value={draft.shutterSpeed} onChange={(event) => updateDraft("shutterSpeed", event.target.value)} />
+                  <AdminInput label={dictionary.gallery.focalLengthLabel} value={draft.focalLength} onChange={(event) => updateDraft("focalLength", event.target.value)} />
                 </div>
-                <AdminInput label="Tags" value={tagString(draft)} onChange={(event) => updateDraft("tags", parseTags(event.target.value))} />
+                <AdminInput label={dictionary.gallery.tagsLabel} value={tagString(draft)} onChange={(event) => updateDraft("tags", parseTags(event.target.value))} />
                 <AdminButton variant="ghost" onClick={() => void handleAiImageMetadata()}>
                   {dictionary.gallery.generateAiAltText}
                 </AdminButton>
                 <label className="flex cursor-pointer items-center justify-between border-t border-outline-variant/10 pt-4">
                   <span>
-                    <span className="block text-body-md text-on-surface">Featured</span>
+                    <span className="block text-body-md text-on-surface">{dictionary.gallery.featuredLabel}</span>
                     <span className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">{dictionary.gallery.featuredHint}</span>
                   </span>
                   <span className="relative inline-flex items-center">
@@ -410,11 +425,11 @@ export default function AdminGalleryPage() {
                 </label>
                 <div className="flex flex-col justify-between gap-4 border-t border-outline-variant/10 pt-8 sm:flex-row">
                   <AdminButton className="text-secondary hover:text-secondary" variant="ghost" onClick={() => void handleDelete()}>
-                    <Trash2 aria-hidden size={15} /> Delete
+                    <Trash2 aria-hidden size={15} /> {dictionary.gallery.delete}
                   </AdminButton>
                   <div className="flex gap-4">
-                    <AdminButton onClick={() => setDraft(selectedPhoto)}>Cancel</AdminButton>
-                    <AdminButton variant="primary" onClick={() => void handleSave()}>{saveState === "Saving" ? "Saving" : dictionary.gallery.saveChanges}</AdminButton>
+                    <AdminButton onClick={() => setDraft(selectedPhoto)}>{dictionary.gallery.cancel}</AdminButton>
+                    <AdminButton variant="primary" onClick={() => void handleSave()}>{saveState === "Saving" ? dictionary.editor.saving : dictionary.gallery.saveChanges}</AdminButton>
                   </div>
                 </div>
               </div>

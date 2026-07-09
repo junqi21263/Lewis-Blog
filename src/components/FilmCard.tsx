@@ -10,17 +10,24 @@ type FilmCardProps = {
 
 export default function FilmCard({ film }: FilmCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const hasPoster = Boolean(film.poster.src);
 
   return (
     <>
       <button className="group card-lift block w-full text-left" type="button" onClick={() => setIsOpen(true)}>
         <div className="image-zoom relative mb-6 aspect-video">
-          <div
-            aria-label={film.poster.alt}
-            className="h-full w-full bg-cover bg-center grayscale transition duration-1000 group-hover:scale-105 group-hover:grayscale-0"
-            role="img"
-            style={{ backgroundImage: `url("${film.poster.src}")` }}
-          />
+          {hasPoster ? (
+            <div
+              aria-label={film.poster.alt}
+              className="h-full w-full bg-cover bg-center transition duration-1000 md:grayscale md:group-hover:scale-105 md:group-hover:grayscale-0"
+              role="img"
+              style={{ backgroundImage: `url("${film.poster.src}")` }}
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center bg-surface-container-low px-6 text-center transition duration-1000 group-hover:bg-surface-container">
+              <span className="font-serif text-headline-md text-on-background">{film.title}</span>
+            </div>
+          )}
           <div className="absolute inset-0 grid place-items-center bg-background/10 transition duration-500 group-hover:bg-background/0">
             <span className="grid size-16 place-items-center rounded-full border border-on-background/40 bg-background/30 text-on-background backdrop-blur-md transition duration-500 group-hover:scale-105 group-hover:border-secondary">
               <Play aria-hidden fill="currentColor" size={20} strokeWidth={1.5} />

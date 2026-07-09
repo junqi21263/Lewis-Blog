@@ -3,7 +3,7 @@ export type MarkdownBlock =
   | { type: "paragraph"; text: string }
   | { type: "quote"; text: string }
   | { type: "code"; language: string; code: string }
-  | { type: "image"; alt: string; src: string }
+  | { type: "image"; alt: string; src: string; layout?: "full-width" }
   | { type: "list"; ordered: boolean; items: string[] }
   | { type: "mdx"; code: string };
 
@@ -129,9 +129,9 @@ export function parseMarkdownBlocks(markdown: string): MarkdownBlock[] {
       continue;
     }
 
-    const imageMatch = trimmed.match(/^!\[(.*)]\((.*)\)$/);
+    const imageMatch = trimmed.match(/^!\[(.*)]\((\S+)(?:\s+"([^"]*)")?\)$/);
     if (imageMatch) {
-      blocks.push({ type: "image", alt: imageMatch[1], src: imageMatch[2] });
+      blocks.push({ type: "image", alt: imageMatch[1], src: imageMatch[2], layout: imageMatch[3] === "full-width" ? "full-width" : undefined });
       index += 1;
       continue;
     }

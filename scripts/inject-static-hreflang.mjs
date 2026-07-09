@@ -6,7 +6,7 @@ const localeSegments = ["zh", "tw", "en"];
 const hreflangBySegment = {
   zh: "zh-CN",
   tw: "zh-TW",
-  en: "en",
+  en: "en-US",
 };
 
 async function getSiteUrl() {
@@ -64,12 +64,16 @@ for (const filePath of htmlFiles) {
   }
 
   const html = await readFile(filePath, "utf8");
-  if (html.includes('rel="alternate"') && html.includes("hreflang")) {
+  const withLang = html.replace(/<html\b([^>]*)\blang="[^"]*"/i, `<html$1lang="${hreflangBySegment[localizedPath.segment]}"`);
+  const hasAlternateHreflang = /rel=["']alternate["']/i.test(withLang) && /hrefLang=|hreflang=/i.test(withLang);
+  if (hasAlternateHreflang) {
+    await writeFile(filePath, withLang);
+    updated += 1;
     continue;
   }
 
   const alternateLinks = buildAlternateLinks(siteUrl, localizedPath.pathname);
-  await writeFile(filePath, html.replace("</head>", `${alternateLinks}</head>`));
+  await writeFile(filePath, withLang.replace("</head>", `${alternateLinks}</head>`));
   updated += 1;
 }
 

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import ArticleMeta from "@/components/ArticleMeta";
@@ -13,7 +12,11 @@ import ImageZoom from "@/components/ImageZoom";
 import ReadingProgress from "@/components/ReadingProgress";
 import ReadingCompletion from "@/components/ReadingCompletion";
 import StructuredData from "@/components/StructuredData";
+import { resolveBrandContent } from "@/components/brand/brandContent";
+import EditorialImage from "@/components/media/EditorialImage";
 import { siteName, siteUrl } from "@/data/site";
+import { useCmsData } from "@/hooks/useCmsData";
+import { objectFitForCover, objectPositionForCover, normalizeCoverDisplayMode, normalizeFocalPoint, type CoverDisplayMode } from "@/components/article/coverPresentation";
 import { withLocalePrefix } from "@/i18n/config";
 import { useI18n } from "@/i18n/useI18n";
 import { analyzeArticleContent } from "@/lib/editor";
@@ -26,6 +29,9 @@ type ApiPost = {
   excerpt: string | null;
   content: string;
   cover_image_url: string | null;
+  cover_display_mode?: CoverDisplayMode | null;
+  cover_focal_x?: number | null;
+  cover_focal_y?: number | null;
   status: string;
   published_at: string | null;
   tags?: string[];
@@ -37,6 +43,18 @@ type AiRelatedItem = {
   description?: string;
   tags?: string[];
 };
+
+function QuietImagePlaceholder({ title, brandName }: { title: string; brandName: string }) {
+  return (
+    <div className="relative grid h-full w-full place-items-center bg-surface-container-low">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.08),_transparent_55%)]" />
+      <div className="relative px-8 text-center">
+        <div className="label-mono mb-4 text-on-surface-variant">{brandName}</div>
+        <p className="mx-auto max-w-xl font-serif text-headline-md text-on-background">{title}</p>
+      </div>
+    </div>
+  );
+}
 
 function renderInline(text: string): ReactNode {
   const parts = text.split(/(\[\^[^\]]+])/g);
@@ -57,6 +75,9 @@ function renderInline(text: string): ReactNode {
 
 export default function ArticleDetailClient({ slug }: { slug: string }) {
   const { locale, dictionary } = useI18n();
+  const { data } = useCmsData();
+  const brand = resolveBrandContent(data.siteSettings.brandJson, locale);
+  const brandName = brand.brandName || brand.cmsTitle || siteName;
   const [post, setPost] = useState<ApiPost | null>(null);
   const [navigation, setNavigation] = useState<ArticleNavigationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -176,6 +197,8 @@ export default function ArticleDetailClient({ slug }: { slug: string }) {
       </div>
     );
   }
+  const coverObjectFit = objectFitForCover(normalizeCoverDisplayMode(post.cover_display_mode));
+  const coverObjectPosition = objectPositionForCover(normalizeFocalPoint(post.cover_focal_x), normalizeFocalPoint(post.cover_focal_y));
 
   return (
     <>
@@ -186,9 +209,9 @@ export default function ArticleDetailClient({ slug }: { slug: string }) {
           "@type": "BlogPosting",
           headline: post.title,
           description: post.excerpt || post.subtitle,
-          image: post.cover_image_url ? new URL(post.cover_image_url, siteUrl).toString() : `${siteUrl}/images/open-road.jpg`,
+          image: post.cover_image_url ? new URL(post.cover_image_url, siteUrl).toString() : `${siteUrl}/og/${post.slug}`,
           datePublished: post.published_at,
-          author: { "@type": "Organization", name: "Noah. Studio" },
+          author: { "@type": "Organization", name: siteName },
           publisher: { "@type": "Organization", name: siteName },
           mainEntityOfPage: `${siteUrl}${withLocalePrefix(`/journal/${post.slug}`, locale)}`,
           inLanguage: locale,
@@ -197,34 +220,43 @@ export default function ArticleDetailClient({ slug }: { slug: string }) {
         }}
       />
       <article>
-        <header className="mb-24 md:mb-section-gap">
-          <div className="editorial-shell relative z-10 mb-14">
-            <div className="label-mono mb-8">{dictionary.journal.eyebrow}</div>
-            <h1 className="mb-8 max-w-4xl font-serif text-display-lg text-on-background md:text-display-xl">
+        <header className="mb-16 md:mb-section-gap">
+          <div className="editorial-shell relative z-10 mb-10 md:mb-14">
+            <div className="label-mono mb-5 md:mb-8">{dictionary.journal.eyebrow}</div>
+            <h1 className="mb-6 max-w-[12ch] font-serif text-[clamp(40px,11.5vw,58px)] leading-[1.05] text-on-background md:mb-8 md:max-w-4xl md:text-display-xl">
               {post.title}
             </h1>
             <div className="flex flex-wrap items-center gap-4 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant">
-              <span>Noah. Studio</span>
+              <span>{brand.logoText || brandName}</span>
               <span className="size-1 rounded-full bg-outline-variant" />
               <span>{post.published_at ? new Date(post.published_at).toLocaleDateString(locale === "zh-TW" ? "zh-Hant-TW" : locale === "zh-CN" ? "zh-Hans-CN" : "en-US") : dictionary.common.published}</span>
               <span className="size-1 rounded-full bg-outline-variant" />
               <ArticleMeta readingTime={analysis.readingTime} wordCount={analysis.wordCount} />
             </div>
           </div>
-          <div className="relative h-[60vh] min-h-[420px] w-full md:h-[80vh]">
-            <Image
-              alt={`${post.title} cover image`}
-              className="h-full w-full object-cover grayscale"
-              fill
-              priority
-              sizes="100vw"
-              src={post.cover_image_url || "/images/open-road.jpg"}
-            />
+          <div className="relative h-[50vh] min-h-[340px] w-full md:h-[80vh] md:min-h-[420px]">
+            {post.cover_image_url ? (
+              <EditorialImage
+                alt={`${post.title} cover image`}
+                aspectRatio="original"
+                className="h-full"
+                fillFrame
+                fit={coverObjectFit}
+                frameClassName="h-full w-full"
+                imageClassName="h-full w-full"
+                sizes="100vw"
+                src={post.cover_image_url}
+                priority
+                style={{ objectFit: coverObjectFit, objectPosition: coverObjectPosition }}
+              />
+            ) : (
+              <QuietImagePlaceholder brandName={brandName} title={post.title} />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
           </div>
         </header>
 
-        <div className="editorial-shell grid grid-cols-1 gap-gutter pb-28 md:grid-cols-12 md:pb-section-gap">
+        <div className="editorial-shell grid grid-cols-1 gap-gutter pb-24 md:grid-cols-12 md:pb-section-gap">
           <aside className="md:col-span-3 md:block">
             <div className="sticky top-40 flex flex-col gap-8">
               <ArticleToc items={analysis.toc} />
@@ -247,22 +279,22 @@ export default function ArticleDetailClient({ slug }: { slug: string }) {
 
           <div className="md:col-span-7 md:col-start-5">
             {post.subtitle || post.excerpt ? (
-              <p className="mb-12 text-xl leading-9 text-on-surface-variant">{post.subtitle || post.excerpt}</p>
+              <p className="mb-10 text-[18px] leading-8 text-on-surface-variant md:mb-12 md:text-xl md:leading-9">{post.subtitle || post.excerpt}</p>
             ) : null}
-            <div className="prose prose-invert max-w-none dark:prose-invert prose-p:font-body prose-p:text-body-lg prose-p:text-on-background prose-headings:font-serif prose-headings:font-normal prose-headings:text-on-background">
+          <div className="prose prose-invert max-w-none dark:prose-invert prose-p:font-body prose-p:text-[17px] prose-p:leading-[1.78] prose-p:text-on-background prose-figcaption:text-[12px] prose-figcaption:leading-5 prose-blockquote:break-words prose-pre:overflow-x-auto prose-headings:font-serif prose-headings:font-normal prose-headings:text-on-background md:prose-p:text-body-lg" data-pagefind-body>
               {analysis.blocks.map((block, index) => {
                 if (block.type === "heading") {
                   const Heading = block.level <= 1 ? "h2" : "h3";
                   return (
-                    <Heading key={`${block.type}-${index}`} id={block.id} className="scroll-mt-36 mt-16 text-headline-lg">
+                    <Heading key={`${block.type}-${index}`} id={block.id} className="scroll-mt-36 mt-14 text-[34px] leading-tight md:mt-16 md:text-headline-lg">
                       {renderInline(block.text)}
                     </Heading>
                   );
                 }
                 if (block.type === "quote") {
                   return (
-                    <blockquote key={`${block.type}-${index}`} className="my-16 border-l pl-8">
-                      <p className="font-serif text-headline-md italic">{block.text}</p>
+                    <blockquote key={`${block.type}-${index}`} className="my-12 max-w-full border-l pl-5 md:my-16 md:pl-8">
+                      <p className="font-serif text-[28px] leading-snug italic md:text-headline-md">{block.text}</p>
                     </blockquote>
                   );
                 }
@@ -280,7 +312,7 @@ export default function ArticleDetailClient({ slug }: { slug: string }) {
                   );
                 }
                 if (block.type === "image") {
-                  return <ImageZoom key={`${block.type}-${index}`} alt={block.alt} src={block.src} />;
+                  return <ImageZoom key={`${block.type}-${index}`} alt={block.alt} layout={block.layout} src={block.src} />;
                 }
                 return <p key={`${block.type}-${index}`}>{renderInline(block.text)}</p>;
               })}

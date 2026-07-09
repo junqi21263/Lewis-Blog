@@ -17,6 +17,38 @@ import {
 } from "../../../_lib/api";
 import { buildPostLocalizations, parsePostLocalizationPayload } from "../../../_lib/localization";
 
+type PostRow = Record<string, unknown> & {
+  featured: number;
+  pinned: number;
+  tag_names: string | null;
+};
+
+function serializePost(row: PostRow) {
+  const { tag_names: tagNames, ...post } = row;
+  return {
+    ...post,
+    featured: Boolean(row.featured),
+    pinned: Boolean(row.pinned),
+    tags: tagNames ? tagNames.split(",").filter(Boolean) : [],
+  };
+}
+
+async function getPostById(db: D1Database, id: string) {
+  const row = await db
+    .prepare(
+      `SELECT posts.*, GROUP_CONCAT(tags.name) AS tag_names
+       FROM posts
+       LEFT JOIN post_tags ON post_tags.post_id = posts.id
+       LEFT JOIN tags ON tags.id = post_tags.tag_id
+       WHERE posts.id = ?
+       GROUP BY posts.id`,
+    )
+    .bind(id)
+    .first<PostRow>();
+
+  return row ? serializePost(row) : null;
+}
+
 export const onRequestPut: PagesFunction<Env, "id"> = async (context) =>
   await withErrorHandling(async () => {
     const blocked = requireAccess(context);
@@ -79,6 +111,12 @@ export const onRequestPut: PagesFunction<Env, "id"> = async (context) =>
         excerpt: body.excerpt == null ? undefined : excerpt,
         content,
         cover_image_url: body.cover_image_url == null ? undefined : optionalTextField(body, "cover_image_url"),
+        cover_display_mode: body.cover_display_mode == null ? undefined : optionalTextField(body, "cover_display_mode"),
+        cover_focal_x: body.cover_focal_x == null ? undefined : Math.min(100, Math.max(0, Math.round(Number(body.cover_focal_x)))),
+        cover_focal_y: body.cover_focal_y == null ? undefined : Math.min(100, Math.max(0, Math.round(Number(body.cover_focal_y)))),
+        cover_width: body.cover_width == null ? undefined : Math.max(0, Math.round(Number(body.cover_width))),
+        cover_height: body.cover_height == null ? undefined : Math.max(0, Math.round(Number(body.cover_height))),
+        cover_aspect_ratio: body.cover_aspect_ratio == null ? undefined : Number(body.cover_aspect_ratio),
         status: body.status == null ? undefined : statusField(body),
         category_id: body.category_id == null ? undefined : optionalTextField(body, "category_id"),
         featured: body.featured == null ? undefined : booleanField(body, "featured"),
@@ -104,7 +142,7 @@ export const onRequestPut: PagesFunction<Env, "id"> = async (context) =>
         await syncPostTags(context.env.DB, id, tags);
       }
 
-      const post = await context.env.DB.prepare("SELECT * FROM posts WHERE id = ?").bind(id).first();
+      const post = await getPostById(context.env.DB, id);
       return jsonResponse({ data: post, meta: { warnings: localization?.warnings ?? [] } });
     } catch (error) {
       return handleRequestError(error);

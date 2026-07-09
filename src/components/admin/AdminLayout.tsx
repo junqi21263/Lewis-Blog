@@ -8,7 +8,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen bg-background text-on-background selection:bg-surface-variant selection:text-on-surface" data-pagefind-ignore>
         <AdminSidebar />
         <AdminTopbar />
-        <div className="min-h-screen pb-28 pt-32 md:ml-64 md:pb-0 md:pt-36">{children}</div>
+        <div className="min-h-screen pb-16 pt-32 md:ml-64 md:pb-0 md:pt-36">{children}</div>
       </div>
     </AdminI18nProvider>
   );

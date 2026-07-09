@@ -3,11 +3,11 @@ import GearClient from "@/components/GearClient";
 
 export const metadata: Metadata = {
   title: "Gear",
-  description: "Cameras, lenses, audio tools, and travel equipment used across the Noah. Studio archive.",
+  description: "Cameras, lenses, audio tools, and travel equipment used across Lewis Photograph Blog.",
   openGraph: {
     title: "Gear",
-    description: "Cameras, lenses, audio tools, and travel equipment used across the Noah. Studio archive.",
-    images: [{ url: "/images/packing.jpg", alt: "A neatly organized field kit on a dark surface." }],
+    description: "Cameras, lenses, audio tools, and travel equipment used across Lewis Photograph Blog.",
+    images: [{ url: "/og/home", alt: "Lewis Photograph Blog open graph cover." }],
   },
 };
 

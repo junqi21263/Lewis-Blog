@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import FilmsClient from "@/components/FilmsClient";
-import { films } from "@/data/site";
 
 export const metadata: Metadata = {
   title: "Films",
@@ -8,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Films",
     description: "Short-form video essays and atmospheric moving notes.",
-    images: [{ url: films[0].poster.src, alt: films[0].poster.alt }],
+    images: [{ url: "/og/home", alt: "Lewis Photograph Blog open graph cover." }],
   },
 };
 

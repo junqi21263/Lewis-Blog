@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import NewsletterSignup from "@/components/NewsletterSignup";
+import { resolveFooterContent } from "@/components/footer/footerContent";
+import { useCmsData } from "@/hooks/useCmsData";
 import { withLocalePrefix } from "@/i18n/config";
 import { useI18n } from "@/i18n/useI18n";
 
 export default function Footer() {
   const { locale, dictionary } = useI18n();
+  const { data } = useCmsData();
+  const footer = resolveFooterContent(data.siteSettings.footerJson, locale);
   const navItems = [
     { href: "/journal", label: dictionary.nav.journal },
     { href: "/gallery", label: dictionary.nav.gallery },
@@ -16,28 +19,29 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="border-t border-outline-variant/10 bg-background pb-16 pt-28 md:pb-margin-desktop md:pt-section-gap">
-      <div className="editorial-shell grid gap-gutter md:grid-cols-[0.9fr_1fr_0.8fr]">
-        <div>
-          <Link className="mb-4 block font-serif text-headline-md tracking-tight text-on-background" href={withLocalePrefix("/", locale)}>
-            Noah.
+    <footer className="border-t border-outline-variant/10 bg-background py-14 md:py-24">
+      <div className="editorial-shell grid gap-10 md:grid-cols-[minmax(0,0.65fr)_minmax(280px,0.35fr)] md:items-start md:gap-12">
+        <div className="max-w-xl">
+          <Link className="mb-5 block font-serif text-headline-md tracking-tight text-on-background transition-colors duration-500 hover:text-secondary" href={withLocalePrefix("/", locale)}>
+            {footer.brand}
           </Link>
-          <p className="max-w-sm text-body-md text-on-surface-variant">
-            {dictionary.footer.description}
-          </p>
+          <p className="max-w-md text-body-md text-on-surface-variant">{footer.description}</p>
+          <div className="mt-8 space-y-2 font-mono text-label-mono uppercase tracking-widest text-on-surface-variant md:mt-10">
+            <p>{footer.copyright}</p>
+            <p>{footer.location}</p>
+          </div>
         </div>
-        <NewsletterSignup />
-        <div className="grid grid-cols-2 gap-x-12 gap-y-6 md:flex md:gap-16">
+        <nav aria-label={dictionary.nav.about} className="grid gap-y-3 md:ml-auto md:flex md:flex-col md:items-end md:gap-y-5">
           {navItems.map((item) => (
             <Link
               key={item.href}
-              className="font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary"
+              className="flex min-h-11 items-center font-mono text-label-mono uppercase tracking-widest text-on-surface-variant transition-colors duration-500 hover:text-secondary md:min-h-0"
               href={withLocalePrefix(item.href, locale)}
             >
               {item.label}
             </Link>
           ))}
-        </div>
+        </nav>
       </div>
     </footer>
   );
