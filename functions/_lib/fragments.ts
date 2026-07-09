@@ -164,6 +164,21 @@ async function translateFragmentToEnglish(env: TranslationEnv, source: FragmentS
   };
 }
 
+export async function translateFragmentPreview(env: TranslationEnv, source: FragmentSourceFields) {
+  const english = await translateFragmentToEnglish(env, source);
+  return {
+    localized_fields: {
+      "zh-CN": source,
+      "zh-TW": {
+        content: toTraditionalChinese(source.content),
+        location: toTraditionalChinese(source.location),
+      },
+      "en-US": english.translation,
+    },
+    warnings: english.warning ? [english.warning] : [],
+  };
+}
+
 export async function buildFragmentLocalizations(
   env: TranslationEnv,
   source: FragmentSourceFields,

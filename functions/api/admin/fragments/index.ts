@@ -26,7 +26,7 @@ function serializeFragment(row: FragmentRow) {
 async function listFragments(db: D1Database) {
   const result = await db
     .prepare(
-      `SELECT id, content_json, location_json, images_json, camera, mood, status, is_public, translation_locks_json, published_at, created_at, updated_at
+      `SELECT id, content_json, location_json, weather_json, images_json, camera, mood, status, is_public, translation_locks_json, published_at, created_at, updated_at
        FROM fragments
        ORDER BY COALESCE(NULLIF(published_at, ''), created_at) DESC, created_at DESC`,
     )
@@ -38,7 +38,7 @@ async function listFragments(db: D1Database) {
 async function getFragmentById(db: D1Database, id: string) {
   const row = await db
     .prepare(
-      `SELECT id, content_json, location_json, images_json, camera, mood, status, is_public, translation_locks_json, published_at, created_at, updated_at
+      `SELECT id, content_json, location_json, weather_json, images_json, camera, mood, status, is_public, translation_locks_json, published_at, created_at, updated_at
        FROM fragments
        WHERE id = ?`,
     )
@@ -75,13 +75,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) =>
       await context.env.DB
         .prepare(
           `INSERT INTO fragments (
-            id, content_json, location_json, images_json, camera, mood, status, is_public, translation_locks_json, published_at, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, content_json, location_json, weather_json, images_json, camera, mood, status, is_public, translation_locks_json, published_at, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
           localization.content_json,
           localization.location_json,
+          JSON.stringify(body.weather_json ?? {}),
           JSON.stringify(body.images_json ?? []),
           optionalTextField(body, "camera") ?? "",
           optionalTextField(body, "mood") ?? "",

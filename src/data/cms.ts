@@ -97,6 +97,7 @@ export type Fragment = {
   id: string;
   contentJson: LocalizedTextMap;
   locationJson: LocalizedTextMap;
+  weatherJson: LocalizedTextMap;
   images: FragmentImage[];
   camera: string;
   mood: string;
@@ -315,6 +316,7 @@ export function localizedFragment(fragment: Fragment, locale: Locale) {
     ...fragment,
     content: resolveLocalizedText(fragment.contentJson, locale, fragment.contentJson["zh-CN"] ?? ""),
     location: resolveLocalizedText(fragment.locationJson, locale, fragment.locationJson["zh-CN"] ?? ""),
+    weather: resolveLocalizedText(fragment.weatherJson, locale, fragment.weatherJson["zh-CN"] ?? ""),
     images: fragment.images
       .slice()
       .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -402,6 +404,7 @@ export function createEmptyFragment(now = new Date().toISOString()): Fragment {
     id: `fragment-${Date.now()}`,
     contentJson: {},
     locationJson: {},
+    weatherJson: {},
     images: [],
     camera: "",
     mood: "",

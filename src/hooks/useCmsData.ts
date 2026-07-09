@@ -126,6 +126,7 @@ type ApiFragment = {
   content_json?: string | null;
   location?: string | null;
   location_json?: string | null;
+  weather_json?: string | null;
   images_json?: string | null;
   camera?: string | null;
   mood?: string | null;
@@ -531,6 +532,7 @@ function fragmentFromApi(fragment: ApiFragment): Fragment {
     id: fragment.id,
     contentJson: parseLocalizedText(fragment.content_json),
     locationJson: parseLocalizedText(fragment.location_json),
+    weatherJson: parseLocalizedText(fragment.weather_json),
     images: Array.isArray(imagesRaw)
       ? imagesRaw.map((image, index) => ({
           url: normalizeAssetUrl(image.url ?? "", ""),
@@ -680,6 +682,7 @@ function fragmentToApi(fragment: Fragment) {
         location: fragment.locationJson["en-US"] ?? "",
       },
     },
+    weather_json: stringifyLocalizedText(fragment.weatherJson),
     images_json: fragment.images.map((image) => ({
       url: image.url,
       alt_json: stringifyLocalizedText(image.altJson),

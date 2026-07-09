@@ -28,7 +28,7 @@ function serializeFragment(row: FragmentRow) {
 async function getFragmentById(db: D1Database, id: string) {
   const row = await db
     .prepare(
-      `SELECT id, content_json, location_json, images_json, camera, mood, status, is_public, translation_locks_json, published_at, created_at, updated_at
+      `SELECT id, content_json, location_json, weather_json, images_json, camera, mood, status, is_public, translation_locks_json, published_at, created_at, updated_at
        FROM fragments
        WHERE id = ?`,
     )
@@ -80,6 +80,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) =>
       await runWhitelistedUpdate(context.env.DB, "fragments", id, {
         content_json: localization.content_json,
         location_json: localization.location_json,
+        weather_json: JSON.stringify(body.weather_json ?? {}),
         images_json: JSON.stringify(body.images_json ?? []),
         camera: optionalTextField(body, "camera") ?? "",
         mood: optionalTextField(body, "mood") ?? "",

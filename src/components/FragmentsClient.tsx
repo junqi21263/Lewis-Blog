@@ -37,6 +37,7 @@ export default function FragmentsClient() {
   const { data, isReady, error } = useCmsData();
   const { locale, dictionary } = useI18n();
   const copy = resolvePageCopy(data.siteSettings.pageCopyJson, "fragments", locale);
+  const weatherLabel = locale === "zh-CN" ? "天气" : locale === "zh-TW" ? "天氣" : "Weather";
   const canonicalUrl = `${siteUrl}${withLocalePrefix("/fragments", locale)}`;
   const fragments = getVisibleFragments(data).map((fragment) => localizedFragment(fragment, locale));
 
@@ -70,10 +71,12 @@ export default function FragmentsClient() {
                   <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-on-surface-variant">
                     {formatFragmentDate(fragment.publishedAt || fragment.createdAt, locale)}
                   </div>
-                  {fragment.location ? (
+                  {fragment.location || fragment.weather ? (
                     <div>
                       <div className="label-mono mb-1">{dictionary.fragments.locationLabel}</div>
-                      <div className="text-body-sm text-on-surface-variant">{fragment.location}</div>
+                      <div aria-label={weatherLabel} className="text-body-sm text-on-surface-variant">
+                        {[fragment.location, fragment.weather].filter(Boolean).join(" · ")}
+                      </div>
                     </div>
                   ) : null}
                   {fragment.camera ? (

@@ -2,11 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowUp, ArrowDown, Globe, ImagePlus, Lock, Save, Send, Trash2, Unlock } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowUp, ArrowDown, Globe, ImagePlus, Lock, RefreshCw, Save, Send, Trash2, Unlock } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminButton from "@/components/admin/AdminButton";
 import AdminInput from "@/components/admin/AdminInput";
 import AdminTextarea from "@/components/admin/AdminTextarea";
+import {
+  fragmentDeviceSuggestions,
+  fragmentMoodSuggestions,
+  randomSuggestion,
+} from "@/components/admin/fragmentSuggestions";
 import { createEmptyFragment, type Fragment, type FragmentImage, type FragmentTranslationField } from "@/data/cms";
 import { useCmsData } from "@/hooks/useCmsData";
 import type { Locale } from "@/i18n/config";
@@ -21,6 +26,33 @@ const locales: Array<{ locale: Locale; label: string }> = [
   { locale: "zh-TW", label: "繁" },
   { locale: "en-US", label: "EN" },
 ];
+let traditionalConverterPromise: Promise<(value: string) => string> | null = null;
+
+function convertToTraditional(value: string) {
+  traditionalConverterPromise ??= import("opencc-js").then((OpenCC) => OpenCC.Converter({ from: "cn", to: "tw" }));
+  return traditionalConverterPromise.then((convert) => convert(value));
+}
+
+type TranslationPreview = {
+  localized_fields: Record<Locale, { content: string; location: string }>;
+  warnings: string[];
+};
+
+type LocationResponse = {
+  location_json: Record<Locale, string>;
+};
+
+type WeatherResponse = {
+  weather_json: Record<Locale, string>;
+};
+
+function createNewFragment() {
+  return {
+    ...createEmptyFragment(),
+    camera: randomSuggestion(fragmentDeviceSuggestions),
+    mood: randomSuggestion(fragmentMoodSuggestions),
+  };
+}
 
 function copyForLocale(locale: Locale) {
   if (locale === "zh-CN") {
@@ -32,6 +64,11 @@ function copyForLocale(locale: Locale) {
       location: "地点",
       camera: "设备",
       mood: "心情",
+      weather: "天气",
+      refresh: "刷新",
+      refreshWeather: "刷新天气",
+      locationHint: "根据当前网络位置自动生成，可手动修改。",
+      translating: "正在生成英文预览…",
       status: "状态",
       isPublic: "公开显示",
       images: "图片",
@@ -62,6 +99,11 @@ function copyForLocale(locale: Locale) {
       location: "地點",
       camera: "設備",
       mood: "心情",
+      weather: "天氣",
+      refresh: "刷新",
+      refreshWeather: "刷新天氣",
+      locationHint: "根據目前網路位置自動生成，可手動修改。",
+      translating: "正在生成英文預覽…",
       status: "狀態",
       isPublic: "公開顯示",
       images: "圖片",
@@ -91,6 +133,11 @@ function copyForLocale(locale: Locale) {
     location: "Location",
     camera: "Camera / Device",
     mood: "Mood",
+    weather: "Weather",
+    refresh: "Refresh",
+    refreshWeather: "Refresh weather",
+    locationHint: "Generated from the current network location and can be edited.",
+    translating: "Generating English preview…",
     status: "Status",
     isPublic: "Publicly visible",
     images: "Images",
@@ -131,42 +178,192 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
   const copy = copyForLocale(locale);
   const { data, isReady, error, addFragment, updateFragment, deleteFragment, uploadAssets } = useCmsData();
   const existing = useMemo(() => data.fragments.find((item) => item.id === fragmentId) ?? null, [data.fragments, fragmentId]);
-  const [draft, setDraft] = useState<Fragment>(() => existing ?? createEmptyFragment());
+  const [draft, setDraft] = useState<Fragment>(() => existing ?? createNewFragment());
   const [activeLocale, setActiveLocale] = useState<Locale>("zh-CN");
   const [toast, setToast] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
+  const locationRequestedRef = useRef(false);
+  const translationRequestRef = useRef(0);
+  const autoLocationRef = useRef<{ source: string; english: string } | null>(null);
+  const sourceContent = draft.contentJson["zh-CN"] ?? "";
+  const sourceLocation = draft.locationJson["zh-CN"] ?? "";
+  const weatherLookupLocation = draft.locationJson["en-US"]?.trim() || sourceLocation;
+  const englishContentManual = Boolean(draft.translationLocks["en-US"]?.content);
+  const englishLocationManual = Boolean(draft.translationLocks["en-US"]?.location);
+  const refreshWeather = useCallback(async (location = weatherLookupLocation) => {
+    if (!location.trim()) return;
+    setIsLoadingWeather(true);
+    try {
+      const response = await fetch(`/api/admin/weather?location=${encodeURIComponent(location.trim())}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Weather lookup failed.");
+      const payload = await response.json() as { data?: WeatherResponse };
+      if (payload.data?.weather_json) {
+        setDraft((current) => ({ ...current, weatherJson: payload.data!.weather_json }));
+      }
+    } catch {
+      setDraft((current) => ({
+        ...current,
+        weatherJson: {
+          "zh-CN": "天气暂不可用",
+          "zh-TW": "天氣暫不可用",
+          "en-US": "Weather unavailable",
+        },
+      }));
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  }, [weatherLookupLocation]);
 
   useEffect(() => {
     if (existing) {
       setDraft(existing);
     } else if (!fragmentId) {
-      setDraft(createEmptyFragment());
+      setDraft((current) => current.id ? current : createNewFragment());
     }
   }, [existing, fragmentId]);
+
+  useEffect(() => {
+    if (fragmentId || locationRequestedRef.current) return;
+    locationRequestedRef.current = true;
+    setIsLocating(true);
+    void fetch("/api/admin/location", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Location lookup failed.");
+        const payload = await response.json() as { data?: LocationResponse };
+        const locationJson = payload.data?.location_json;
+        if (!locationJson) return;
+        autoLocationRef.current = {
+          source: locationJson["zh-CN"] ?? "",
+          english: locationJson["en-US"] ?? "",
+        };
+        setDraft((current) => ({
+          ...current,
+          locationJson: {
+            ...current.locationJson,
+            ...locationJson,
+          },
+        }));
+      })
+      .catch(() => setWarnings((current) => [...current, "当前位置暂不可用，可手动填写地点。"]))
+      .finally(() => setIsLocating(false));
+  }, [fragmentId]);
+
+  useEffect(() => {
+    if (!sourceContent.trim() && !sourceLocation.trim()) return;
+    if (englishContentManual && englishLocationManual) return;
+
+    const requestId = ++translationRequestRef.current;
+    const timer = window.setTimeout(() => {
+      setIsTranslating(true);
+      void fetch("/api/admin/fragments/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: sourceContent, location: sourceLocation }),
+      })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Translation preview failed.");
+          const payload = await response.json() as { data?: TranslationPreview };
+          if (requestId !== translationRequestRef.current || !payload.data) return;
+          const preserveAutoLocation =
+            payload.data.warnings.length > 0 &&
+            autoLocationRef.current?.source === sourceLocation &&
+            Boolean(autoLocationRef.current.english);
+          setDraft((current) => ({
+            ...current,
+            contentJson: current.translationLocks["en-US"]?.content
+              ? current.contentJson
+              : { ...current.contentJson, "en-US": payload.data!.localized_fields["en-US"].content },
+            locationJson: current.translationLocks["en-US"]?.location
+              ? current.locationJson
+              : {
+                  ...current.locationJson,
+                  "en-US": preserveAutoLocation
+                    ? autoLocationRef.current!.english
+                    : payload.data!.localized_fields["en-US"].location,
+                },
+          }));
+          setWarnings(payload.data.warnings);
+        })
+        .catch(() => setWarnings(["英文实时预览暂不可用，保存时将继续尝试生成。"]))
+        .finally(() => {
+          if (requestId === translationRequestRef.current) setIsTranslating(false);
+        });
+    }, 550);
+    return () => window.clearTimeout(timer);
+  }, [
+    sourceContent,
+    sourceLocation,
+    englishContentManual,
+    englishLocationManual,
+  ]);
+
+  useEffect(() => {
+    const location = weatherLookupLocation.trim();
+    if (!location) return;
+    const timer = window.setTimeout(() => {
+      void refreshWeather(location);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [refreshWeather, weatherLookupLocation]);
 
   function updateDraft<Key extends keyof Fragment>(key: Key, value: Fragment[Key]) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
   function updateLocalized(field: FragmentTranslationField, localeKey: Locale, value: string) {
-    setDraft((current) => ({
-      ...current,
-      [`${field}Json`]: { ...current[`${field}Json`], [localeKey]: value },
-    } as Fragment));
+    setDraft((current) => {
+      const map = { ...current[`${field}Json`], [localeKey]: value };
+      return {
+        ...current,
+        [`${field}Json`]: map,
+        translationLocks: localeKey === "zh-CN"
+          ? current.translationLocks
+          : {
+              ...current.translationLocks,
+              [localeKey]: { ...current.translationLocks[localeKey], [field]: true },
+            },
+      } as Fragment;
+    });
+    if (localeKey === "zh-CN") {
+      void convertToTraditional(value).then((translated) => {
+        setDraft((current) => {
+          if (current[`${field}Json`]["zh-CN"] !== value || current.translationLocks["zh-TW"]?.[field]) return current;
+          return {
+            ...current,
+            [`${field}Json`]: { ...current[`${field}Json`], "zh-TW": translated },
+          } as Fragment;
+        });
+      });
+    }
   }
 
   function toggleManual(localeKey: Locale, field: FragmentTranslationField) {
+    const nextManual = !draft.translationLocks[localeKey]?.[field];
+    const sourceForSync = draft[`${field}Json`]["zh-CN"] ?? "";
     setDraft((current) => ({
       ...current,
-      translationLocks: {
-        ...current.translationLocks,
-        [localeKey]: {
-          ...current.translationLocks[localeKey],
-          [field]: !current.translationLocks[localeKey]?.[field],
+        translationLocks: {
+          ...current.translationLocks,
+          [localeKey]: {
+            ...current.translationLocks[localeKey],
+            [field]: nextManual,
+          },
         },
-      },
     }));
+    if (!nextManual && localeKey === "zh-TW" && sourceForSync) {
+      void convertToTraditional(sourceForSync).then((translated) => {
+        setDraft((current) => current.translationLocks["zh-TW"]?.[field]
+          ? current
+          : {
+              ...current,
+              [`${field}Json`]: { ...current[`${field}Json`], "zh-TW": translated },
+            } as Fragment);
+      });
+    }
   }
 
   async function handleUpload(files: FileList | null) {
@@ -288,6 +485,7 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
                 {item.label}
               </button>
             ))}
+            {isTranslating ? <span className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">{copy.translating}</span> : null}
           </div>
 
           <div className="grid gap-6">
@@ -324,6 +522,9 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
               ) : null}
             </div>
             <AdminInput value={draft.locationJson[activeLocale] ?? ""} onChange={(event) => updateLocalized("location", activeLocale, event.target.value)} />
+            <p className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">
+              {isLocating ? "Locating…" : copy.locationHint}
+            </p>
           </div>
 
           <section className="border-t border-outline-variant/10 pt-6">
@@ -397,8 +598,44 @@ export default function FragmentEditorScreen({ fragmentId }: FragmentEditorScree
         </div>
 
         <aside className="space-y-6 border-t border-outline-variant/10 pt-6 lg:border-t-0 lg:border-l lg:pl-8">
-          <AdminInput label={copy.camera} value={draft.camera} onChange={(event) => updateDraft("camera", event.target.value)} />
-          <AdminInput label={copy.mood} value={draft.mood} onChange={(event) => updateDraft("mood", event.target.value)} />
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+            <AdminInput label={copy.camera} value={draft.camera} onChange={(event) => updateDraft("camera", event.target.value)} />
+            <button
+              aria-label={`${copy.refresh} ${copy.camera}`}
+              className="grid size-11 place-items-center border border-outline-variant/20 text-on-surface-variant transition hover:border-on-surface hover:text-on-surface"
+              type="button"
+              onClick={() => updateDraft("camera", randomSuggestion(fragmentDeviceSuggestions, draft.camera))}
+            >
+              <RefreshCw aria-hidden size={15} />
+            </button>
+          </div>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+            <AdminInput label={copy.mood} value={draft.mood} onChange={(event) => updateDraft("mood", event.target.value)} />
+            <button
+              aria-label={`${copy.refresh} ${copy.mood}`}
+              className="grid size-11 place-items-center border border-outline-variant/20 text-on-surface-variant transition hover:border-on-surface hover:text-on-surface"
+              type="button"
+              onClick={() => updateDraft("mood", randomSuggestion(fragmentMoodSuggestions, draft.mood))}
+            >
+              <RefreshCw aria-hidden size={15} />
+            </button>
+          </div>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+            <AdminInput
+              label={copy.weather}
+              value={draft.weatherJson[activeLocale] ?? ""}
+              onChange={(event) => updateDraft("weatherJson", { ...draft.weatherJson, [activeLocale]: event.target.value })}
+            />
+            <button
+              aria-label={copy.refreshWeather}
+              className="grid size-11 place-items-center border border-outline-variant/20 text-on-surface-variant transition hover:border-on-surface hover:text-on-surface disabled:opacity-40"
+              disabled={isLoadingWeather || !sourceLocation.trim()}
+              type="button"
+              onClick={() => void refreshWeather()}
+            >
+              <RefreshCw aria-hidden className={isLoadingWeather ? "animate-spin" : ""} size={15} />
+            </button>
+          </div>
           <div>
             <span className="label-mono mb-2 block">{copy.status}</span>
             <select
